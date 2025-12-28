@@ -1,70 +1,318 @@
-# Getting Started with Create React App
+# Sistema de Gestión Educativa - Frontend (React)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Aplicación web moderna desarrollada con React 19 y Material UI 7 para la gestión integral de procesos educativos. Incluye autenticación JWT, gestión de usuarios, módulo académico y dashboard interactivo.
 
-## Available Scripts
+## 🚀 Características
 
-In the project directory, you can run:
+### Autenticación y Seguridad
 
-### `npm start`
+- ✅ Login con email y contraseña
+- ✅ Registro de nuevos usuarios con validación
+- ✅ Autenticación JWT con renovación automática de tokens
+- ✅ Refresh proactivo de tokens (cuando quedan <5 minutos)
+- ✅ Rutas protegidas por rol (Administrador, Docente, Estudiante)
+- ✅ Sesión persistente con localStorage
+- ✅ Cierre de sesión automático al expirar refresh token
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Gestión de Usuarios
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- Dashboard con estadísticas
+- Listado de usuarios con filtros y búsqueda
+- Tabla interactiva con DataGrid de MUI
+- Edición y eliminación (solo Administradores)
+- Visualización de perfiles con avatar
+- Cambio de contraseña seguro
 
-### `npm test`
+### Módulo Académico
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Gestión de instituciones educativas
+- Administración de sedes
+- Configuración de grados académicos
+- Catálogo de asignaturas
+- Asignaciones docente-asignatura
+- Asignaciones estudiante-grado
 
-### `npm run build`
+### UX/UI
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- Diseño responsive con Material UI
+- Tema personalizable (light/dark)
+- Navegación con drawer lateral
+- Mensajes de feedback (Snackbar)
+- Loader global durante peticiones
+- Manejo de errores centralizado
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 📋 Requisitos
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Node.js 18+
+- npm 9+ o yarn 1.22+
+- Backend Django corriendo en `http://localhost:8000`
 
-### `npm run eject`
+## 🔧 Instalación
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 1. Clonar el repositorio
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+git clone https://github.com/Crhistian-LAMBDA/Edu_React.git
+cd Edu_React
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 2. Instalar dependencias
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+npm install
+```
 
-## Learn More
+### 3. Configurar variables de entorno (opcional)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Crear archivo `.env` en la raíz:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```env
+REACT_APP_API_URL=http://localhost:8000
+```
 
-### Code Splitting
+Si no se configura, usa `http://localhost:8000` por defecto.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### 4. Iniciar servidor de desarrollo
 
-### Analyzing the Bundle Size
+```bash
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+La aplicación estará disponible en `http://localhost:3000`
 
-### Making a Progressive Web App
+## 📦 Scripts Disponibles
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+| Comando         | Descripción                                               |
+| --------------- | --------------------------------------------------------- |
+| `npm start`     | Inicia el servidor de desarrollo en http://localhost:3000 |
+| `npm test`      | Ejecuta los tests en modo interactivo                     |
+| `npm run build` | Genera build de producción en carpeta `/build`            |
+| `npm run eject` | Expone configuración de webpack (irreversible)            |
 
-### Advanced Configuration
+## 🗂️ Estructura del Proyecto
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```
+src/
+├── components/          # Componentes reutilizables
+│   └── Common/         # Componentes comunes (Header, Sidebar, etc)
+├── core/               # Configuración base
+│   ├── api/           # Cliente Axios configurado
+│   ├── config/        # Constantes y configuraciones
+│   └── constants/     # Variables globales
+├── features/          # Módulos por funcionalidad
+│   ├── auth/         # Autenticación
+│   │   ├── pages/    # Login, Registro, Perfil
+│   │   └── services/ # authService.js
+│   ├── usuarios/     # Gestión de usuarios
+│   │   ├── pages/    # UsuariosPage, Dashboard
+│   │   └── services/ # usuariosService.js
+│   └── academico/    # Módulo académico
+│       ├── pages/
+│       └── services/
+├── hooks/             # Custom hooks
+│   └── AuthContext.js # Contexto de autenticación
+├── layouts/           # Layouts de la app
+│   └── AppLayout.js   # Layout principal con sidebar
+├── routes/            # Configuración de rutas
+│   └── routes.js      # Rutas protegidas y públicas
+├── shared/            # Código compartido
+│   ├── components/
+│   │   └── ProtectedRoute.js
+│   ├── context/
+│   │   └── SearchContext.js
+│   └── utils/
+├── App.js             # Componente raíz
+├── index.js           # Punto de entrada
+└── theme.js           # Tema Material UI
+```
 
-### Deployment
+## 🔐 Autenticación JWT
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### Flujo de Login
 
-### `npm run build` fails to minify
+1. Usuario ingresa email y contraseña
+2. Backend valida credenciales y devuelve tokens:
+   - `access`: válido 1 hora
+   - `refresh`: válido 7 días
+3. Frontend guarda tokens en localStorage
+4. Cada petición incluye `Authorization: Bearer <access>`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Renovación de Tokens
+
+- **Automática en 401:** Si una petición devuelve 401, el interceptor intenta renovar con `/api/token/refresh/`
+- **Proactiva:** Cada 60 segundos verifica si el access token expira en <5 minutos y lo renueva preventivamente
+
+### Implementación
+
+`src/hooks/AuthContext.js`:
+
+```javascript
+// Decodifica exp del token y programa refresh proactivo
+useEffect(() => {
+  const interval = setInterval(() => {
+    const decoded = jwtDecode(token);
+    const now = Date.now() / 1000;
+    if (decoded.exp - now < 300) {
+      // <5 min
+      refrescarAccess();
+    }
+  }, 60000); // cada 60s
+  return () => clearInterval(interval);
+}, [token]);
+```
+
+## 📚 Servicios Principales
+
+### `usuariosService.js`
+
+```javascript
+// Login con email
+login(email, password);
+
+// Registro
+registro(datos);
+
+// Obtener usuario autenticado
+obtenerUsuarioActual();
+
+// Cambiar contraseña
+cambiarPassword(passwordActual, passwordNueva);
+
+// Renovar token de acceso
+refrescarAccess();
+```
+
+### Interceptor Axios
+
+Configurado en `core/api/`:
+
+- Añade `Authorization: Bearer <token>` a todas las peticiones
+- Intercepta 401 y renueva token automáticamente
+- Reintentar petición original tras refresh exitoso
+
+## 🎨 Temas y Estilos
+
+Material UI con tema personalizado (`theme.js`):
+
+```javascript
+const theme = createTheme({
+  palette: {
+    primary: { main: "#1976d2" },
+    secondary: { main: "#dc004e" },
+  },
+  typography: {
+    fontFamily: "Roboto, sans-serif",
+  },
+});
+```
+
+## 📖 Páginas Principales
+
+| Ruta         | Componente    | Descripción          | Acceso        |
+| ------------ | ------------- | -------------------- | ------------- |
+| `/login`     | LoginPage     | Inicio de sesión     | Público       |
+| `/registro`  | RegistroPage  | Registro de usuarios | Público       |
+| `/dashboard` | DashboardPage | Panel principal      | Autenticado   |
+| `/perfil`    | PerfilPage    | Perfil del usuario   | Autenticado   |
+| `/usuarios`  | UsuariosPage  | Gestión de usuarios  | Admin/Docente |
+
+## 🛡️ Rutas Protegidas
+
+Componente `ProtectedRoute.js`:
+
+```javascript
+<ProtectedRoute allowedRoles={["Administrador"]}>
+  <UsuariosPage />
+</ProtectedRoute>
+```
+
+## 🔄 Contextos Globales
+
+### AuthContext
+
+- Maneja estado de autenticación
+- Login/logout
+- Renovación de tokens
+- Información del usuario actual
+
+### SearchContext
+
+- Búsqueda global en DataGrid
+- Filtros persistentes
+
+## 🛠️ Tecnologías Utilizadas
+
+- **React 19** - Biblioteca UI
+- **Material UI 7** - Componentes UI
+- **Axios** - Cliente HTTP
+- **React Router 6** - Enrutamiento
+- **jwt-decode** - Decodificación de JWT
+- **Create React App** - Scaffolding
+
+## 🚀 Despliegue
+
+### Build de Producción
+
+```bash
+npm run build
+```
+
+Genera carpeta `/build` optimizada para producción.
+
+### Servir Build Estático
+
+```bash
+# Con servidor simple
+npx serve -s build
+
+# O con nginx/apache
+# Copiar contenido de /build a carpeta web
+```
+
+### Variables de Entorno para Producción
+
+Crear `.env.production`:
+
+```env
+REACT_APP_API_URL=https://api.tudominio.com
+```
+
+## 🧪 Testing
+
+```bash
+# Ejecutar tests
+npm test
+
+# Cobertura
+npm test -- --coverage
+```
+
+## 📝 Notas de Desarrollo
+
+- El token de acceso se guarda en `localStorage` como `token`
+- El token de refresh se guarda en `localStorage` como `refreshToken`
+- Al cerrar sesión, se limpian ambos tokens
+- Las credenciales NO se almacenan, solo los tokens JWT
+- El backend debe tener CORS habilitado para `http://localhost:3000`
+
+## 🤝 Contribuir
+
+1. Fork el proyecto
+2. Crea una rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit tus cambios (`git commit -m 'Añadir nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abre un Pull Request
+
+## 📄 Licencia
+
+Este proyecto es de uso educativo.
+
+## 👤 Autor
+
+**Christian LAMBDA**
+
+- GitHub: [@Crhistian-LAMBDA](https://github.com/Crhistian-LAMBDA)
+
+---
+
+**Backend relacionado:** [Edu_Djando](https://github.com/Crhistian-LAMBDA/Edu_Djando)

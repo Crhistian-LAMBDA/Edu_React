@@ -4,6 +4,8 @@ import { ProtectedRoute } from '../shared/components/ProtectedRoute';
 import AppLayout from '../layouts/AppLayout';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegistroPage from '../features/auth/pages/RegistroPage';
+import ResetPasswordPage from '../features/auth/pages/ResetPasswordPage';
+import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage';
 import DashboardPage from '../features/usuarios/pages/DashboardPage';
 import PerfilPage from '../features/auth/pages/PerfilPage';
 import UsuariosPage from '../features/usuarios/pages/UsuariosPage';
@@ -14,6 +16,8 @@ export default function AppRoutes() {
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/registro" element={<RegistroPage />} />
+      <Route path="/olvide-contraseña" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       
       {/* Rutas protegidas con layout */}
       <Route

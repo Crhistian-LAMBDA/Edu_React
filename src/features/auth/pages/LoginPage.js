@@ -54,6 +54,9 @@ export default function LoginPage() {
           <Button type="submit" variant="contained" fullWidth disabled={loading}>
             {loading ? 'Ingresando...' : 'Ingresar'}
           </Button>
+          <Button variant="text" fullWidth sx={{ mt: 1 }} onClick={() => navigate('/olvide-contraseña')}>
+            ¿Olvidaste tu contraseña?
+          </Button>
           <Button variant="text" fullWidth sx={{ mt: 1 }} onClick={() => navigate('/registro')}>
             ¿No tienes cuenta? Regístrate
           </Button>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { usuariosService } from '../features/usuarios/services/usuariosService';
 
 const AuthContext = createContext();
@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [refreshTimerId, setRefreshTimerId] = useState(null);
+  const refreshTimerRef = useRef(null);
 
   // Verificar si hay token al cargar
   useEffect(() => {
@@ -20,17 +20,28 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Utilidad: obtener expiración (ms) de un JWT
-  const getExpMs = (token) => {
+  const getExpMs = useCallback((token) => {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.exp ? payload.exp * 1000 : null;
     } catch {
       return null;
     }
-  };
+  }, []);
+
+  // Logout
+  const logout = useCallback(() => {
+    usuariosService.logout();
+    setUser(null);
+    setError(null);
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  }, []);
 
   // Chequear y refrescar si faltan <5 minutos
-  const maybeRefreshAccess = async () => {
+  const maybeRefreshAccess = useCallback(async () => {
     const access = localStorage.getItem('access_token');
     const refresh = localStorage.getItem('refresh_token');
     if (!access || !refresh) return;
@@ -46,24 +57,24 @@ export const AuthProvider = ({ children }) => {
         logout();
       }
     }
-  };
+  }, [getExpMs, logout]);
 
   // Iniciar intervalo de verificación cada 60s
   useEffect(() => {
     // Limpiar si ya existe
-    if (refreshTimerId) {
-      clearInterval(refreshTimerId);
-      setRefreshTimerId(null);
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
     }
     // Solo si hay sesión
     if (localStorage.getItem('access_token') && localStorage.getItem('refresh_token')) {
       // Ejecutar una vez al inicio
       maybeRefreshAccess();
       const id = setInterval(maybeRefreshAccess, 60 * 1000);
-      setRefreshTimerId(id);
+      refreshTimerRef.current = id;
       return () => clearInterval(id);
     }
-  }, [user]);
+  }, [user, maybeRefreshAccess]);
 
   // Obtener perfil del usuario
   const cargarPerfil = async () => {
@@ -112,17 +123,6 @@ export const AuthProvider = ({ children }) => {
       throw err;
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Logout
-  const logout = () => {
-    usuariosService.logout();
-    setUser(null);
-    setError(null);
-    if (refreshTimerId) {
-      clearInterval(refreshTimerId);
-      setRefreshTimerId(null);
     }
   };
 

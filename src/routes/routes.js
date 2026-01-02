@@ -9,6 +9,9 @@ import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage';
 import DashboardPage from '../features/usuarios/pages/DashboardPage';
 import PerfilPage from '../features/auth/pages/PerfilPage';
 import UsuariosPage from '../features/usuarios/pages/UsuariosPage';
+import AsignaturasPage from '../features/academico/pages/AsignaturasPage';
+import FacultadesPage from '../features/academico/pages/FacultadesPage';
+import CarrerasPage from '../features/academico/pages/CarrerasPage';
 
 export default function AppRoutes() {
   return (
@@ -46,6 +49,36 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <UsuariosPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/academico/asignaturas"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <AsignaturasPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/academico/facultades"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <FacultadesPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/academico/carreras"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <CarrerasPage />
             </AppLayout>
           </ProtectedRoute>
         }

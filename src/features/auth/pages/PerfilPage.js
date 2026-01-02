@@ -4,6 +4,7 @@ import {
 } from '@mui/material';
 import { Person, School, Business, MenuBook, Lock, Check, Close } from '@mui/icons-material';
 import { useAuth } from '../../../hooks/AuthContext';
+import { getDisplayName } from '../../../shared/utils/roleDisplayNames';
 
 export default function PerfilPage() {
   const { user, actualizarUsuario, cambiarPassword } = useAuth();
@@ -144,7 +145,7 @@ export default function PerfilPage() {
     <Box p={3}>
       <Grid container spacing={3}>
         {/* Encabezado con Avatar */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Paper sx={{ p: 3 }}>
             <Box display="flex" alignItems="center" gap={3}>
               <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main', fontSize: '2rem' }}>
@@ -159,7 +160,7 @@ export default function PerfilPage() {
                 </Typography>
                 <Box mt={1} display="flex" gap={1}>
                   <Chip
-                    label={form.rol_display || form.rol}
+                    label={getDisplayName(form.rol)}
                     color={getRolColor(form.rol)}
                     size="small"
                     icon={<Person />}
@@ -177,7 +178,7 @@ export default function PerfilPage() {
         </Grid>
 
         {/* Columna Izquierda - Información Personal */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" mb={2} display="flex" alignItems="center" gap={1}>
               <Person /> Información Personal
@@ -244,7 +245,7 @@ export default function PerfilPage() {
         </Grid>
 
         {/* Columna Derecha - Info Académica y Cambio de Contraseña */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <Box display="flex" flexDirection="column" gap={3} height="100%">
             {/* Información Académica */}
             <Paper sx={{ p: 3 }}>
@@ -253,7 +254,7 @@ export default function PerfilPage() {
               </Typography>
               <Grid container spacing={2}>
                 {form.facultad_nombre && (
-                  <Grid item xs={12}>
+                  <Grid size={12}>
                     <Card variant="outlined">
                       <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Business color="primary" />
@@ -266,7 +267,7 @@ export default function PerfilPage() {
                   </Grid>
                 )}
                 {form.programa_nombre && (
-                  <Grid item xs={12}>
+                  <Grid size={12}>
                     <Card variant="outlined">
                       <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <MenuBook color="success" />
@@ -279,7 +280,7 @@ export default function PerfilPage() {
                   </Grid>
                 )}
                 {form.rol === 'profesor' && form.asignaturas_ids?.length > 0 && (
-                  <Grid item xs={12}>
+                  <Grid size={12}>
                     <Card variant="outlined">
                       <CardContent>
                         <Typography variant="caption" color="text.secondary">Asignaturas asignadas</Typography>
@@ -289,7 +290,7 @@ export default function PerfilPage() {
                   </Grid>
                 )}
                 {!form.facultad_nombre && !form.programa_nombre && form.rol === 'estudiante' && (
-                  <Grid item xs={12}>
+                  <Grid size={12}>
                     <Alert severity="info" variant="outlined">
                       No tienes programa académico asignado aún.
                     </Alert>

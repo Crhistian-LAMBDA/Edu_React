@@ -91,7 +91,7 @@ export const usuariosService = {
   // Entidades académicas
   listarFacultades: () => apiClient.get('/facultades/'),
   listarAsignaturas: () => apiClient.get('/asignaturas/'),
-  listarProgramas: () => apiClient.get('/programas/'),
+  listarCarreras: () => apiClient.get('/carreras/'),
 
   // Logout (solo limpia localmente, backend no requiere)
   logout: () => {

@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { usuariosService } from '../services/usuariosService';
-import { Paper, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, FormControl, InputLabel, Select, MenuItem, Grid, Chip, OutlinedInput } from '@mui/material';
+import { Paper, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, FormControl, InputLabel, Select, MenuItem, Grid, Chip, Tabs, Tab } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -8,12 +8,33 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import IconButton from '@mui/material/IconButton';
 import { useAuth } from '../../../hooks/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
+import { getDisplayName } from '../../../shared/utils/roleDisplayNames';
+
+// Jerarquía de roles: mayor valor = mayor jerarquía
+const ROLE_HIERARCHY = {
+  super_admin: 5,
+  admin: 4,
+  coordinador: 3,
+  profesor: 2,
+  estudiante: 1
+};
+
+// Obtiene el rol principal basado en jerarquía
+const getRolPrincipal = (roles) => {
+  if (!roles || roles.length === 0) return null;
+  return roles.reduce((mayor, actual) => {
+    const pesoActual = ROLE_HIERARCHY[actual] || 0;
+    const pesoMayor = ROLE_HIERARCHY[mayor] || 0;
+    return pesoActual > pesoMayor ? actual : mayor;
+  });
+};
 
 export default function UsuariosPage() {
   const { user } = useAuth();
   const { searchTerm } = useSearch();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tabValue, setTabValue] = useState(0); // Pestaña activa: 0=Sin Rol, 1=Estudiantes, 2=Profesores, 3=Coordinadores, 4=Decanos/Rectores
   const [open, setOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -23,11 +44,19 @@ export default function UsuariosPage() {
   
   // Estados para entidades académicas
   const [facultades, setFacultades] = useState([]);
-  const [programas, setProgramas] = useState([]);
-  const [asignaturas, setAsignaturas] = useState([]);
+  const [carreras, setCarreras] = useState([]);
+
+  // Función helper para verificar roles
+  const tieneAlgunRol = useCallback((rolesRequeridos) => {
+    if (!user) return false;
+    if (user.roles && Array.isArray(user.roles)) {
+      return user.roles.some(r => rolesRequeridos.includes(r));
+    }
+    return rolesRequeridos.includes(user.rol);
+  }, [user]);
 
   // Validar permisos: solo admin y super_admin
-  const tienePermisos = user?.rol === 'admin' || user?.rol === 'super_admin';
+  const tienePermisos = tieneAlgunRol(['admin', 'super_admin']);
 
   useEffect(() => {
     if (tienePermisos) {
@@ -38,14 +67,12 @@ export default function UsuariosPage() {
   
   const cargarEntidadesAcademicas = async () => {
     try {
-      const [facRes, progRes, asigRes] = await Promise.all([
+      const [facRes, carRes] = await Promise.all([
         usuariosService.listarFacultades(),
-        usuariosService.listarProgramas(),
-        usuariosService.listarAsignaturas()
+        usuariosService.listarCarreras()
       ]);
       setFacultades(facRes.data.results || facRes.data);
-      setProgramas(progRes.data.results || progRes.data);
-      setAsignaturas(asigRes.data.results || asigRes.data);
+      setCarreras(carRes.data.results || carRes.data);
     } catch (error) {
       console.error('Error cargando entidades académicas:', error);
     }
@@ -59,28 +86,33 @@ export default function UsuariosPage() {
       .finally(() => setLoading(false));
   };
 
-  const abrirEditar = (usr) => {
+  const abrirEditar = useCallback((usr) => {
     if (usr?.rol === 'super_admin' && user?.rol !== 'super_admin') {
-      setMessage({ type: 'error', text: 'No tienes permiso para editar super administradores' });
+      setMessage({ type: 'error', text: 'No tienes permiso para editar rectores' });
       return;
     }
     if (usr?.rol === 'admin' && user?.rol !== 'super_admin') {
-      setMessage({ type: 'error', text: 'No tienes permiso para editar administradores' });
+      setMessage({ type: 'error', text: 'No tienes permiso para editar decanos' });
       return;
     }
+    
+    // Buscar facultad del coordinador (relación inversa)
+    const facultadCoordinador = facultades.find(f => f.coordinador === usr.id);
+    
     setEditingUser(usr);
     setEditForm({ 
       first_name: usr.first_name, 
       last_name: usr.last_name, 
       email: usr.email,
       rol: usr.rol,
+      roles: usr.roles || [],
       estado: usr.estado || (usr.is_active ? 'activo' : 'inactivo'),
       facultad: usr.facultad || '',
-      programa: usr.programa || '',
-      asignaturas_ids: usr.asignaturas_ids || []
+      carrera: usr.carrera || '',
+      facultad_coordinador_nombre: facultadCoordinador?.nombre || null
     });
     setOpen(true);
-  };
+  }, [user, facultades]);
 
   const cerrarEditar = () => {
     setOpen(false);
@@ -88,10 +120,10 @@ export default function UsuariosPage() {
     setEditForm({});
   };
 
-  const abrirVer = (usuario) => {
+  const abrirVer = useCallback((usuario) => {
     setViewingUser(usuario);
     setViewOpen(true);
-  };
+  }, []);
 
   const cerrarVer = () => {
     setViewOpen(false);
@@ -111,19 +143,58 @@ export default function UsuariosPage() {
   };
 
   const usuariosFiltrados = useMemo(() => {
-    if (!searchTerm?.trim()) return items;
-    const termino = searchTerm.toLowerCase();
-    return items.filter(usr => 
-      usr.username.toLowerCase().includes(termino) ||
-      usr.first_name?.toLowerCase().includes(termino) ||
-      usr.last_name?.toLowerCase().includes(termino) ||
-      usr.email?.toLowerCase().includes(termino) ||
-      usr.rol?.toLowerCase().includes(termino) ||
-      usr.estado?.toLowerCase().includes(termino)
-    );
-  }, [items, searchTerm]);
+    let filtrados = items;
+    
+    // Filtrar por pestaña activa
+    switch(tabValue) {
+      case 0: // Sin Rol Asignado
+        filtrados = items.filter(usr => !usr.roles || usr.roles.length === 0);
+        break;
+      case 1: // Estudiantes
+        filtrados = items.filter(usr => {
+          const rolPrincipal = getRolPrincipal(usr.roles);
+          return rolPrincipal === 'estudiante';
+        });
+        break;
+      case 2: // Profesores
+        filtrados = items.filter(usr => {
+          const rolPrincipal = getRolPrincipal(usr.roles);
+          return rolPrincipal === 'profesor';
+        });
+        break;
+      case 3: // Coordinadores
+        filtrados = items.filter(usr => {
+          const rolPrincipal = getRolPrincipal(usr.roles);
+          return rolPrincipal === 'coordinador';
+        });
+        break;
+      case 4: // Decanos/Rectores
+        filtrados = items.filter(usr => {
+          const rolPrincipal = getRolPrincipal(usr.roles);
+          return rolPrincipal === 'admin' || rolPrincipal === 'super_admin';
+        });
+        break;
+      default:
+        filtrados = items;
+    }
+    
+    // Aplicar filtro de búsqueda
+    if (searchTerm?.trim()) {
+      const termino = searchTerm.toLowerCase();
+      filtrados = filtrados.filter(usr => 
+        usr.username.toLowerCase().includes(termino) ||
+        usr.first_name?.toLowerCase().includes(termino) ||
+        usr.last_name?.toLowerCase().includes(termino) ||
+        usr.email?.toLowerCase().includes(termino) ||
+        usr.rol?.toLowerCase().includes(termino) ||
+        usr.estado?.toLowerCase().includes(termino)
+      );
+    }
+    
+    return filtrados;
+  }, [items, searchTerm, tabValue]);
 
-  const eliminarUsuario = (id, username) => {
+  const eliminarUsuario = useCallback((id, username) => {
     if (window.confirm(`¿Eliminar usuario ${username}?`)) {
       usuariosService.eliminarUsuario(id)
         .then(() => {
@@ -133,99 +204,174 @@ export default function UsuariosPage() {
         })
         .catch(() => setMessage({ type: 'error', text: 'Error al eliminar' }));
     }
-  };
+  }, []);
 
-  const columns = [
-    { field: 'username', headerName: 'Usuario', width: 120 },
-    { field: 'first_name', headerName: 'Nombre', width: 120 },
-    { field: 'last_name', headerName: 'Apellido', width: 120 },
-    { field: 'numero_documento', headerName: 'Documento', width: 130 },
-    { field: 'email', headerName: 'Correo', width: 200 },
-    { field: 'rol', headerName: 'Rol', width: 120 },
-    { 
-      field: 'estado', 
-      headerName: 'Estado', 
-      width: 100,
-      valueGetter: (value, row) => row?.estado ?? (row?.is_active ? 'activo' : 'inactivo')
-    },
-    {
-      field: 'fecha_creacion',
-      headerName: 'Fecha Registro',
-      width: 150,
-      valueGetter: (value, row) => {
-        if (!row?.fecha_creacion) return '-';
-        return new Date(row.fecha_creacion).toLocaleDateString('es-ES');
-      }
-    },
-    {
-      field: 'asignacion',
-      headerName: 'Asignación Académica',
-      width: 250,
-      sortable: false,
+  const columns = useMemo(() => {
+    const baseColumns = [
+      { field: 'username', headerName: 'Usuario', width: 120 },
+      { field: 'first_name', headerName: 'Nombre', width: 120 },
+      { field: 'last_name', headerName: 'Apellido', width: 120 },
+      { field: 'numero_documento', headerName: 'Documento', width: 130 },
+      { field: 'email', headerName: 'Correo', width: 200 },
+    ];
+    
+    // Columna de Rol con badges para roles adicionales
+    const rolColumn = { 
+      field: 'rol', 
+      headerName: 'Rol', 
+      width: 220,
       renderCell: (params) => {
         const row = params.row;
-        
-        if (row.rol === 'estudiante') {
-          return <Typography variant="body2">{row.programa_nombre || '-'}</Typography>;
+        if (!row?.roles || row.roles.length === 0) {
+          return <Typography variant="body2" color="textSecondary">Sin rol</Typography>;
         }
         
-        if (row.rol === 'profesor') {
-          const asignaturasDelProfesor = asignaturas.filter(a => row.asignaturas_ids?.includes(a.id));
-          return asignaturasDelProfesor.length > 0 ? (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {asignaturasDelProfesor.map(a => (
-                <Chip key={a.id} label={a.codigo} size="small" variant="outlined" />
-              ))}
-            </Box>
-          ) : (
-            <Typography variant="body2" color="textSecondary">Sin asignar</Typography>
-          );
-        }
-        
-        if (row.rol === 'admin') {
-          return <Typography variant="body2">{row.facultad_nombre || '-'}</Typography>;
-        }
-        
-        return <Typography variant="body2">-</Typography>;
-      }
-    },
-    {
-      field: 'acciones',
-      headerName: 'Acciones',
-      width: 150,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => {
-        const puedeEditar = user?.rol === 'super_admin' || 
-                           (user?.rol === 'admin' && params.row.rol !== 'admin' && params.row.rol !== 'super_admin');
-        const puedeEliminar = user?.rol === 'super_admin' || 
-                             (user?.rol === 'admin' && params.row.rol !== 'admin' && params.row.rol !== 'super_admin');
+        const rolPrincipal = getRolPrincipal(row.roles);
+        const rolesSecundarios = row.roles.filter(r => r !== rolPrincipal);
         
         return (
-          <>
-            <IconButton size="small" color="info" onClick={() => abrirVer(params.row)} title="Ver perfil">
-              <VisibilityIcon />
-            </IconButton>
-            {puedeEditar && (
-              <IconButton size="small" color="primary" onClick={() => abrirEditar(params.row)} title="Editar">
-                <EditIcon />
-              </IconButton>
-            )}
-            {puedeEliminar && (
-              <IconButton size="small" color="error" onClick={() => eliminarUsuario(params.row.id, params.row.username)} title="Eliminar">
-                <DeleteIcon />
-              </IconButton>
-            )}
-          </>
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Chip 
+              label={getDisplayName(rolPrincipal)} 
+              color="primary" 
+              size="small" 
+            />
+            {rolesSecundarios.map(rol => (
+              <Chip 
+                key={rol}
+                label={getDisplayName(rol)} 
+                variant="outlined" 
+                size="small"
+                sx={{ fontSize: '0.7rem' }}
+              />
+            ))}
+          </Box>
         );
+      }
+    };
+    
+    const commonColumns = [
+      rolColumn,
+      { 
+        field: 'estado', 
+        headerName: 'Estado', 
+        width: 100,
+        valueGetter: (value, row) => row?.estado ?? (row?.is_active ? 'activo' : 'inactivo')
       },
-    },
-  ];
+      {
+        field: 'fecha_creacion',
+        headerName: 'Fecha Registro',
+        width: 150,
+        valueGetter: (value, row) => {
+          if (!row?.fecha_creacion) return '-';
+          return new Date(row.fecha_creacion).toLocaleDateString('es-ES');
+        }
+      },
+    ];
+    
+    // Columnas específicas según pestaña
+    let specificColumns = [];
+    
+    if (tabValue === 1) { // Estudiantes
+      specificColumns = [
+        {
+          field: 'facultad_nombre',
+          headerName: 'Facultad',
+          width: 180,
+          valueGetter: (value, row) => {
+            const facultad = facultades.find(f => f.id === row.facultad);
+            return facultad?.nombre || '-';
+          }
+        },
+        {
+          field: 'carrera_nombre',
+          headerName: 'Carrera',
+          width: 200,
+          valueGetter: (value, row) => {
+            const carrera = carreras.find(c => c.id === row.carrera);
+            return carrera?.nombre || '-';
+          }
+        },
+      ];
+    } else if (tabValue === 2) { // Profesores
+      specificColumns = [
+        {
+          field: 'facultad_nombre',
+          headerName: 'Facultad',
+          width: 180,
+          valueGetter: (value, row) => {
+            const facultad = facultades.find(f => f.id === row.facultad);
+            return facultad?.nombre || '-';
+          }
+        },
+      ];
+    } else if (tabValue === 3) { // Coordinadores
+      specificColumns = [
+        {
+          field: 'facultad_nombre',
+          headerName: 'Facultad',
+          width: 180,
+          valueGetter: (value, row) => {
+            const facultad = facultades.find(f => f.id === row.facultad || f.coordinador === row.id);
+            return facultad?.nombre || '-';
+          }
+        },
+      ];
+    } else if (tabValue === 4) { // Decanos/Rectores
+      specificColumns = [
+        {
+          field: 'facultad_nombre',
+          headerName: 'Facultad',
+          width: 180,
+          valueGetter: (value, row) => {
+            const facultad = facultades.find(f => f.id === row.facultad);
+            return facultad?.nombre || '-';
+          }
+        },
+      ];
+    }
+    
+    const actionColumns = [
+      {
+        field: 'acciones',
+        headerName: 'Acciones',
+        width: 150,
+        sortable: false,
+        filterable: false,
+        renderCell: (params) => {
+          const puedeEditar = tieneAlgunRol(['super_admin']) || 
+                             (tieneAlgunRol(['admin']) && params.row.rol !== 'admin' && params.row.rol !== 'super_admin');
+          const puedeEliminar = tieneAlgunRol(['super_admin']) || 
+                               (tieneAlgunRol(['admin']) && params.row.rol !== 'admin' && params.row.rol !== 'super_admin');
+          
+          return (
+            <>
+              <IconButton size="small" color="info" onClick={() => abrirVer(params.row)} title="Ver perfil">
+                <VisibilityIcon />
+              </IconButton>
+              {puedeEditar && (
+                <IconButton size="small" color="primary" onClick={() => abrirEditar(params.row)} title="Editar">
+                  <EditIcon />
+                </IconButton>
+              )}
+              {puedeEliminar && (
+                <IconButton size="small" color="error" onClick={() => eliminarUsuario(params.row.id, params.row.username)} title="Eliminar">
+                  <DeleteIcon />
+                </IconButton>
+              )}
+            </>
+          );
+        },
+      },
+    ];
+    
+    return [...baseColumns, ...commonColumns, ...specificColumns, ...actionColumns];
+  }, [tabValue, facultades, carreras, tieneAlgunRol, abrirEditar, abrirVer, eliminarUsuario]);
 
   if (!tienePermisos) {
     return (
       <Box p={3}>
-        <Alert severity="warning">No tienes permisos para acceder a esta sección. Solo administradores.</Alert>
+        <Alert severity="warning">No tienes permisos para acceder a esta sección. Solo decanos.</Alert>
       </Box>
     );
   }
@@ -234,6 +380,17 @@ export default function UsuariosPage() {
     <Box p={3}>
       <Typography variant="h5" mb={3}>Usuarios</Typography>
       {message.text && <Alert severity={message.type} sx={{ mb: 2 }}>{message.text}</Alert>}
+      
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} aria-label="Filtrar usuarios por rol">
+          <Tab label="Sin Rol Asignado" />
+          <Tab label="Estudiantes" />
+          <Tab label="Profesores" />
+          <Tab label="Coordinadores" />
+          <Tab label="Decanos/Rectores" />
+        </Tabs>
+      </Box>
+      
       <Paper sx={{ height: 600, width: '100%' }}>
         <DataGrid
           rows={usuariosFiltrados}
@@ -271,17 +428,43 @@ export default function UsuariosPage() {
             onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
             sx={{ mb: 2 }}
           />
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Roles asignados</Typography>
+          <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {editForm.roles?.map(rol => (
+              <Chip
+                key={rol}
+                label={rol.charAt(0).toUpperCase() + rol.slice(1)}
+                onDelete={() => setEditForm({ 
+                  ...editForm, 
+                  roles: editForm.roles.filter(r => r !== rol) 
+                })}
+                color="primary"
+                variant="outlined"
+              />
+            ))}
+          </Box>
+
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Rol</InputLabel>
+            <InputLabel>Agregar rol</InputLabel>
             <Select
-              label="Rol"
-              value={editForm.rol || ''}
-              onChange={(e) => setEditForm({ ...editForm, rol: e.target.value })}
+              label="Agregar rol"
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value && !editForm.roles?.includes(e.target.value)) {
+                  setEditForm({ 
+                    ...editForm, 
+                    roles: [...(editForm.roles || []), e.target.value]
+                  });
+                }
+                e.target.value = '';
+              }}
             >
-              <MenuItem value="estudiante">Estudiante</MenuItem>
+              <MenuItem value="">-- Seleccionar rol --</MenuItem>
               <MenuItem value="profesor">Profesor</MenuItem>
-              <MenuItem value="admin">Administrador</MenuItem>
-              <MenuItem value="super_admin">Super Administrador</MenuItem>
+              <MenuItem value="coordinador">Coordinador</MenuItem>
+              <MenuItem value="estudiante">Estudiante</MenuItem>
+              <MenuItem value="admin">Decano</MenuItem>
+              <MenuItem value="super_admin">Rector</MenuItem>
             </Select>
           </FormControl>
           <FormControl fullWidth>
@@ -295,7 +478,54 @@ export default function UsuariosPage() {
               <MenuItem value="inactivo">Inactivo</MenuItem>
             </Select>
           </FormControl>
-          {editForm.rol === 'admin' && (
+          
+          {/* Campo de Facultad para Estudiante */}
+          {editForm.roles?.includes('estudiante') && (
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Facultad</InputLabel>
+              <Select
+                label="Facultad"
+                value={editForm.facultad || ''}
+                onChange={(e) => {
+                  setEditForm({ 
+                    ...editForm, 
+                    facultad: e.target.value,
+                    carrera: '' // Limpiar carrera cuando cambia facultad
+                  });
+                }}
+              >
+                <MenuItem value="">Sin asignar</MenuItem>
+                {facultades.map(fac => (
+                  <MenuItem key={fac.id} value={fac.id}>{fac.nombre}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+          
+          {/* Campo de Carrera para Estudiante (filtrado por facultad) */}
+          {editForm.roles?.includes('estudiante') && editForm.facultad && (
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Carrera</InputLabel>
+              <Select
+                label="Carrera"
+                value={editForm.carrera || ''}
+                onChange={(e) => setEditForm({ ...editForm, carrera: e.target.value })}
+              >
+                <MenuItem value="">Sin asignar</MenuItem>
+                {carreras
+                  .filter(car => car.facultad === editForm.facultad)
+                  .map(car => (
+                    <MenuItem key={car.id} value={car.id}>
+                      {car.codigo} - {car.nombre}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+          )}
+          
+          {/* Campo de Facultad para Coordinador/Profesor */}
+          {(editForm.roles?.includes('coordinador') || editForm.roles?.includes('profesor')) && 
+           !editForm.roles?.includes('estudiante') && (
             <FormControl fullWidth sx={{ mt: 2 }}>
               <InputLabel>Facultad</InputLabel>
               <Select
@@ -310,44 +540,40 @@ export default function UsuariosPage() {
               </Select>
             </FormControl>
           )}
-          {editForm.rol === 'estudiante' && (
+          
+          {/* Campo de Facultad para Admin/Decano */}
+          {editForm.roles?.includes('admin') && 
+           !editForm.roles?.includes('estudiante') && 
+           !editForm.roles?.includes('coordinador') && 
+           !editForm.roles?.includes('profesor') && (
             <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>Programa</InputLabel>
+              <InputLabel>Facultad (Decano)</InputLabel>
               <Select
-                label="Programa"
-                value={editForm.programa || ''}
-                onChange={(e) => setEditForm({ ...editForm, programa: e.target.value })}
+                label="Facultad (Decano)"
+                value={editForm.facultad || ''}
+                onChange={(e) => setEditForm({ ...editForm, facultad: e.target.value })}
               >
                 <MenuItem value="">Sin asignar</MenuItem>
-                {programas.map(prog => (
-                  <MenuItem key={prog.id} value={prog.id}>{prog.codigo} - {prog.nombre}</MenuItem>
+                {facultades.map(fac => (
+                  <MenuItem key={fac.id} value={fac.id}>{fac.nombre}</MenuItem>
                 ))}
               </Select>
             </FormControl>
           )}
-          {editForm.rol === 'profesor' && (
-            <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>Asignaturas</InputLabel>
-              <Select
-                label="Asignaturas"
-                multiple
-                value={editForm.asignaturas_ids || []}
-                onChange={(e) => setEditForm({ ...editForm, asignaturas_ids: e.target.value })}
-                input={<OutlinedInput label="Asignaturas" />}
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selected.map((value) => {
-                      const asig = asignaturas.find(a => a.id === value);
-                      return <Chip key={value} label={asig?.codigo || value} size="small" />;
-                    })}
-                  </Box>
-                )}
-              >
-                {asignaturas.map(asig => (
-                  <MenuItem key={asig.id} value={asig.id}>{asig.codigo} - {asig.nombre}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          
+          {/* Información de Facultad para Coordinador (solo lectura) */}
+          {editForm.roles?.includes('coordinador') && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                Facultad asignada como Coordinador
+              </Typography>
+              <Typography variant="body1" fontWeight="bold">
+                {editForm.facultad_coordinador_nombre || 'No asignado a ninguna facultad'}
+              </Typography>
+              <Typography variant="caption" color="textSecondary" display="block" sx={{ mt: 0.5 }}>
+                La asignación de coordinador se gestiona desde la página de Facultades
+              </Typography>
+            </Box>
           )}
         </DialogContent>
         <DialogActions>

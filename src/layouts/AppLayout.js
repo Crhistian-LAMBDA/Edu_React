@@ -10,6 +10,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import BookIcon from '@mui/icons-material/Book';
 import SchoolIcon from '@mui/icons-material/School';
 import BusinessIcon from '@mui/icons-material/Business';
+import SecurityIcon from '@mui/icons-material/Security';
 import { useSearch } from '../shared/context/SearchContext';
 
 const DRAWER_WIDTH = 250;
@@ -41,6 +42,11 @@ export default function AppLayout({ children }) {
   // Solo mostrar Usuarios si es admin o super_admin
   if (tieneAlgunRol(['admin', 'super_admin'])) {
     menuItems.push({ label: 'Usuarios', icon: <PeopleIcon />, path: '/usuarios' });
+  }
+
+  // Roles y Permisos solo para super_admin
+  if (tieneAlgunRol(['super_admin'])) {
+    menuItems.push({ label: 'Roles y Permisos', icon: <SecurityIcon />, path: '/roles-permisos' });
   }
 
   // Asignaturas para admin, super_admin y coordinador

@@ -9,6 +9,7 @@ import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage';
 import DashboardPage from '../features/usuarios/pages/DashboardPage';
 import PerfilPage from '../features/auth/pages/PerfilPage';
 import UsuariosPage from '../features/usuarios/pages/UsuariosPage';
+import RolesPermisosPage from '../features/usuarios/pages/RolesPermisosPage';
 import AsignaturasPage from '../features/academico/pages/AsignaturasPage';
 import FacultadesPage from '../features/academico/pages/FacultadesPage';
 import CarrerasPage from '../features/academico/pages/CarrerasPage';
@@ -49,6 +50,16 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <UsuariosPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/roles-permisos"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <RolesPermisosPage />
             </AppLayout>
           </ProtectedRoute>
         }

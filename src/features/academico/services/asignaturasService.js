@@ -3,7 +3,7 @@ import apiClient from '../../usuarios/services/usuariosService';
 // Servicio para gestionar asignaturas y períodos académicos
 export const asignaturasService = {
   // Asignaturas
-  listar: (params = {}) => apiClient.get('/asignaturas/', { params }),
+  listar: (params = {}) => apiClient.get('/asignaturas/', { params: { page_size: 1000, ...params } }),
   crear: (data) => apiClient.post('/asignaturas/', data),
   actualizar: (id, data) => apiClient.patch(`/asignaturas/${id}/`, data),
   eliminar: (id) => apiClient.delete(`/asignaturas/${id}/`),
@@ -16,8 +16,29 @@ export const asignaturasService = {
   crearPeriodo: (data) => apiClient.post('/periodos-academicos/', data),
   actualizarPeriodo: (id, data) => apiClient.patch(`/periodos-academicos/${id}/`, data),
 
+  // Facultades
+  listarFacultades: () => apiClient.get('/facultades/'),
+
+  // Carreras
+  listarCarreras: () => apiClient.get('/carreras/'),
+
   // Docentes (para combo de docente responsable)
-  listarDocentes: () => apiClient.get('/usuarios/', { params: { rol: 'docente' } }),
+  listarDocentes: (params = {}) => apiClient.get('/usuarios/', { params: { rol: 'docente', ...params } }),
+
+  // Importar asignaturas desde archivo
+  importarAsignaturas: (archivo, periodoId = null, dryRun = true) => {
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    formData.append('dry_run', dryRun ? 'true' : 'false');
+    if (periodoId) {
+      formData.append('periodo_id', periodoId);
+    }
+    return apiClient.post('/asignaturas/importar/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 };
 
 export default asignaturasService;

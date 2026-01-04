@@ -10,6 +10,22 @@ import { useAuth } from '../../../hooks/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
 import { getDisplayName } from '../../../shared/utils/roleDisplayNames';
 
+/**
+ * UsuariosPage - Gestión de Usuarios y Roles (HU-05)
+ * 
+ * VALIDACIONES DE JERARQUÍA:
+ * - Los administradores solo pueden editar usuarios de igual o menor jerarquía
+ * - No se permite auto-promocionarse a un rol superior
+ * - Solo super_admin puede asignar roles super_admin o admin
+ * 
+ * JERARQUÍA DE ROLES:
+ * super_admin (5) > admin (4) > coordinador (3) > profesor (2) > estudiante (1)
+ * 
+ * SEGURIDAD:
+ * - Las validaciones se aplican tanto en frontend como en backend
+ * - Se requiere confirmación para cambios de rol significativos
+ */
+
 // Jerarquía de roles: mayor valor = mayor jerarquía
 const ROLE_HIERARCHY = {
   super_admin: 5,
@@ -131,8 +147,36 @@ export default function UsuariosPage() {
   };
 
   const guardarEdicion = async () => {
+    /**
+     * Validación de jerarquía antes de guardar cambios de rol
+     * 
+     * REGLA: Solo super_admin puede asignar roles superiores
+     * - Si usuario intenta ascender a otro rol a una posición superior,
+     *   se verifica que el usuario actual sea super_admin
+     * - Si no es super_admin, se rechaza el cambio
+     * - Los cambios a roles iguales o inferiores siempre están permitidos
+     */
     try {
-      await usuariosService.actualizarUsuario(editingUser.id, editForm);
+      // VALIDACIÓN: Verificar jerarquía para cambios de rol
+      const rolActualPrincipal = getRolPrincipal(editingUser.roles || [editingUser.rol]);
+      const nuevoRolPrincipal = getRolPrincipal(editForm.roles || [editForm.rol]);
+      
+      // Si intenta cambiar rol a uno superior
+      if ((ROLE_HIERARCHY[nuevoRolPrincipal] || 0) > (ROLE_HIERARCHY[rolActualPrincipal] || 0)) {
+        // Solo super_admin puede asignar roles superiores
+        if (user?.rol !== 'super_admin' && !user?.roles?.includes('super_admin')) {
+          setMessage({ type: 'error', text: 'No puedes asignar roles superiores al tuyo' });
+          return;
+        }
+      }
+      
+      // Preparar datos: incluir rol legacy como el rol principal
+      const datosAGuardar = {
+        ...editForm,
+        rol: getRolPrincipal(editForm.roles || [editForm.rol]) // Asignar rol principal como rol legacy
+      };
+      
+      await usuariosService.actualizarUsuario(editingUser.id, datosAGuardar);
       setMessage({ type: 'success', text: 'Usuario actualizado' });
       cargarUsuarios();
       cerrarEditar();

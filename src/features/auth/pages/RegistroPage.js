@@ -22,8 +22,8 @@ export default function RegistroPage() {
     setOk(''); setErrors({});
     try {
       await registro(form);
-      setOk('Usuario creado correctamente.');
-      setTimeout(() => navigate('/login'), 1200);
+      setOk('Usuario creado correctamente. Por favor espera a que un decano apruebe tu cuenta.');
+      setTimeout(() => navigate('/login'), 2500);
     } catch (err) {
       const apiErrors = err.response?.data?.errors || err.response?.data || {};
       setErrors(apiErrors);

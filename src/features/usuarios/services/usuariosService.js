@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -50,11 +50,11 @@ apiClient.interceptors.response.use(
 
 export const usuariosService = {
   // Registro
-  registro: (data) => apiClient.post('/usuarios/registro/', data),
+  registro: (data) => apiClient.post('/auth/registro/', data),
 
   // Login
   login: (email, password) =>
-    apiClient.post('/usuarios/login/', { email, password }),
+    apiClient.post('/auth/login/', { email, password }),
 
   // Obtener perfil del usuario autenticado
   obtenerPerfil: () => apiClient.get('/usuarios/me/'),
@@ -68,16 +68,30 @@ export const usuariosService = {
 
   // Cambiar contraseña
   cambiarPassword: (data) =>
-    apiClient.post('/usuarios/cambiar_password/', data),
+    apiClient.post('/auth/cambiar-password/', data),
 
   // Eliminar usuario
   eliminarUsuario: (id) =>
     apiClient.delete(`/usuarios/${id}/`),
   
+  // Recuperación de contraseña
+  soliciarRecuperacion: (email) =>
+    apiClient.post('/auth/solicitar-recuperacion/', { email }),
+    
+  resetearPassword: (token, password_nueva, password_nueva_confirm) =>
+    apiClient.post('/auth/resetear-password/', {
+      token,
+      password_nueva,
+      password_nueva_confirm
+    }),
+    
+  validarToken: (token) =>
+    apiClient.post('/auth/validar-token/', { token }),
+  
   // Entidades académicas
   listarFacultades: () => apiClient.get('/facultades/'),
   listarAsignaturas: () => apiClient.get('/asignaturas/'),
-  listarProgramas: () => apiClient.get('/programas/'),
+  listarCarreras: () => apiClient.get('/carreras/'),
 
   // Logout (solo limpia localmente, backend no requiere)
   logout: () => {

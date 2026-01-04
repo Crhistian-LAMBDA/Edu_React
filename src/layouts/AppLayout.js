@@ -7,6 +7,10 @@ import PersonIcon from '@mui/icons-material/Person';
 import PeopleIcon from '@mui/icons-material/People';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SearchIcon from '@mui/icons-material/Search';
+import BookIcon from '@mui/icons-material/Book';
+import SchoolIcon from '@mui/icons-material/School';
+import BusinessIcon from '@mui/icons-material/Business';
+import SecurityIcon from '@mui/icons-material/Security';
 import { useSearch } from '../shared/context/SearchContext';
 
 const DRAWER_WIDTH = 250;
@@ -17,7 +21,18 @@ export default function AppLayout({ children }) {
   const { user, logout } = useAuth();
   const { searchTerm, setSearchTerm } = useSearch();
 
-  const esPaginaUsuarios = location.pathname === '/usuarios';
+  const esPaginaConBuscador = ['/usuarios', '/academico/asignaturas', '/academico/carreras', '/academico/facultades'].includes(location.pathname);
+
+  // Función helper para verificar si el usuario tiene alguno de los roles
+  const tieneAlgunRol = (rolesRequeridos) => {
+    if (!user) return false;
+    // Verificar array de roles (múltiples roles)
+    if (user.roles && Array.isArray(user.roles)) {
+      return user.roles.some(r => rolesRequeridos.includes(r));
+    }
+    // Fallback al campo rol legacy (por compatibilidad)
+    return rolesRequeridos.includes(user.rol);
+  };
 
   const menuItems = [
     { label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
@@ -25,8 +40,28 @@ export default function AppLayout({ children }) {
   ];
 
   // Solo mostrar Usuarios si es admin o super_admin
-  if (user?.rol === 'admin' || user?.rol === 'super_admin') {
+  if (tieneAlgunRol(['admin', 'super_admin'])) {
     menuItems.push({ label: 'Usuarios', icon: <PeopleIcon />, path: '/usuarios' });
+  }
+
+  // Roles y Permisos solo para super_admin
+  if (tieneAlgunRol(['super_admin'])) {
+    menuItems.push({ label: 'Roles y Permisos', icon: <SecurityIcon />, path: '/roles-permisos' });
+  }
+
+  // Asignaturas para admin, super_admin y coordinador
+  if (tieneAlgunRol(['admin', 'super_admin', 'coordinador'])) {
+    menuItems.push({ label: 'Asignaturas', icon: <BookIcon />, path: '/academico/asignaturas' });
+  }
+
+  // Facultades solo para admin y super_admin
+  if (tieneAlgunRol(['admin', 'super_admin'])) {
+    menuItems.push({ label: 'Facultades', icon: <BusinessIcon />, path: '/academico/facultades' });
+  }
+
+  // Carreras para admin, super_admin y coordinador
+  if (tieneAlgunRol(['admin', 'super_admin', 'coordinador'])) {
+    menuItems.push({ label: 'Carreras', icon: <SchoolIcon />, path: '/academico/carreras' });
   }
 
   const onLogout = () => {
@@ -47,8 +82,8 @@ export default function AppLayout({ children }) {
             Colegio Django
           </Typography>
           
-          {/* Barra de búsqueda - solo en página de usuarios */}
-          {esPaginaUsuarios && (
+          {/* Barra de búsqueda - en Usuarios y Asignaturas */}
+          {esPaginaConBuscador && (
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -61,7 +96,12 @@ export default function AppLayout({ children }) {
             }}>
               <SearchIcon sx={{ color: 'rgba(255,255,255,0.7)', mr: 1 }} />
               <TextField
-                placeholder="Buscar usuario..."
+                placeholder={
+                  location.pathname === '/usuarios' ? 'Buscar usuario...' :
+                  location.pathname === '/academico/asignaturas' ? 'Buscar asignatura...' :
+                  location.pathname === '/academico/carreras' ? 'Buscar carrera...' :
+                  location.pathname === '/academico/facultades' ? 'Buscar facultad...' : 'Buscar...'
+                }
                 variant="standard"
                 fullWidth
                 value={searchTerm}
@@ -91,7 +131,7 @@ export default function AppLayout({ children }) {
         <Toolbar />
         <List>
           {menuItems.map((item) => (
-            <ListItem button key={item.path} onClick={() => navigate(item.path)}>
+            <ListItem component="button" key={item.path} onClick={() => navigate(item.path)} sx={{ cursor: 'pointer', '&:hover': { backgroundColor: '#f5f5f5' } }}>
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.label} />
             </ListItem>
@@ -99,7 +139,7 @@ export default function AppLayout({ children }) {
         </List>
         <Divider />
         <List>
-          <ListItem button onClick={onLogout}>
+          <ListItem component="button" onClick={onLogout} sx={{ cursor: 'pointer', '&:hover': { backgroundColor: '#f5f5f5' } }}>
             <ListItemIcon><LogoutIcon /></ListItemIcon>
             <ListItemText primary="Salir" />
           </ListItem>

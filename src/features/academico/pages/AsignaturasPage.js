@@ -375,22 +375,24 @@ export default function AsignaturasPage() {
                     />
                     <Typography sx={{ fontWeight: 600 }}>{carrera}</Typography>
                     <Chip label={`${lista.length} materias`} size="small" />
-                    {carrerasSeleccionadas[carrera] && (
-                      <Button
-                        size="small"
-                        color="error"
-                        endIcon={<DeleteIcon />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          eliminarAsignaturasCarrera(carrera, lista);
-                        }}
-                        disabled={!puedeGestionar}
-                      >
-                        Eliminar todas
-                      </Button>
-                    )}
                   </Box>
                 </AccordionSummary>
+                {carrerasSeleccionadas[carrera] && (
+                  <Box sx={{ p: 1, bgcolor: '#fff3cd', borderTop: '1px solid #eee' }}>
+                    <Button
+                      size="small"
+                      color="error"
+                      variant="contained"
+                      endIcon={<DeleteIcon />}
+                      onClick={() => {
+                        eliminarAsignaturasCarrera(carrera, lista);
+                      }}
+                      disabled={!puedeGestionar}
+                    >
+                      Eliminar todas las asignaturas
+                    </Button>
+                  </Box>
+                )}
                 <AccordionDetails>
                   <TableContainer>
                     <Table size="small">

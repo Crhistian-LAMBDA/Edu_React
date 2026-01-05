@@ -11,6 +11,7 @@ import BookIcon from '@mui/icons-material/Book';
 import SchoolIcon from '@mui/icons-material/School';
 import BusinessIcon from '@mui/icons-material/Business';
 import SecurityIcon from '@mui/icons-material/Security';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useSearch } from '../shared/context/SearchContext';
 
 const DRAWER_WIDTH = 250;
@@ -21,7 +22,7 @@ export default function AppLayout({ children }) {
   const { user, logout } = useAuth();
   const { searchTerm, setSearchTerm } = useSearch();
 
-  const esPaginaConBuscador = ['/usuarios', '/academico/asignaturas', '/academico/carreras', '/academico/facultades'].includes(location.pathname);
+  const esPaginaConBuscador = ['/usuarios', '/academico/asignaturas', '/academico/carreras', '/academico/facultades', '/academico/tareas'].includes(location.pathname);
 
   // Función helper para verificar si el usuario tiene alguno de los roles
   const tieneAlgunRol = (rolesRequeridos) => {
@@ -64,6 +65,11 @@ export default function AppLayout({ children }) {
     menuItems.push({ label: 'Carreras', icon: <SchoolIcon />, path: '/academico/carreras' });
   }
 
+  // Tareas para profesor, docente, coordinador, admin y super_admin
+  if (tieneAlgunRol(['profesor', 'docente', 'coordinador', 'admin', 'super_admin'])) {
+    menuItems.push({ label: 'Tareas', icon: <AssignmentIcon />, path: '/academico/tareas' });
+  }
+
   const onLogout = () => {
     logout();
     navigate('/login');
@@ -100,7 +106,8 @@ export default function AppLayout({ children }) {
                   location.pathname === '/usuarios' ? 'Buscar usuario...' :
                   location.pathname === '/academico/asignaturas' ? 'Buscar asignatura...' :
                   location.pathname === '/academico/carreras' ? 'Buscar carrera...' :
-                  location.pathname === '/academico/facultades' ? 'Buscar facultad...' : 'Buscar...'
+                  location.pathname === '/academico/facultades' ? 'Buscar facultad...' :
+                  location.pathname === '/academico/tareas' ? 'Buscar tarea...' : 'Buscar...'
                 }
                 variant="standard"
                 fullWidth

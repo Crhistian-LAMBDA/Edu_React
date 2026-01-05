@@ -13,6 +13,7 @@ import RolesPermisosPage from '../features/usuarios/pages/RolesPermisosPage';
 import AsignaturasPage from '../features/academico/pages/AsignaturasPage';
 import FacultadesPage from '../features/academico/pages/FacultadesPage';
 import CarrerasPage from '../features/academico/pages/CarrerasPage';
+import TareasPage from '../features/academico/pages/TareasPage';
 
 export default function AppRoutes() {
   return (
@@ -90,6 +91,16 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <CarrerasPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/academico/tareas"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <TareasPage />
             </AppLayout>
           </ProtectedRoute>
         }

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Accordion,
@@ -48,13 +49,27 @@ const defaultForm = {
   descripcion: '',
   creditos: 0,
   estado: true,
-  docente_responsable: '',
   periodo_academico: '',
-  profesores_adicionales_ids: [],
+    profesores: [],
   prerrequisitos: [],
 };
 
 export default function AsignaturasPage() {
+  
+    const quitarProfesorDeAsignatura = async (asignaturaId, profesorId) => {
+      const asignatura = items.find(a => a.id === asignaturaId);
+      if (!asignatura) return;
+      const nuevosProfesores = asignatura.profesores_info
+        .filter(p => p.id !== profesorId)
+        .map(p => p.id);
+      try {
+        await asignaturasService.actualizar(asignaturaId, { profesores: nuevosProfesores });
+        setMessage({ type: 'success', text: 'Profesor eliminado de la asignatura' });
+        await cargarDatos();
+      } catch (e) {
+        setMessage({ type: 'error', text: 'No se pudo eliminar el profesor' });
+      }
+    };
   const { searchTerm } = useSearch();
   const { user } = useAuth();
   const puedeGestionar = ['admin', 'super_admin', 'coordinador'].includes(user?.rol);
@@ -161,7 +176,7 @@ export default function AsignaturasPage() {
       estado: row.estado ?? true,
       docente_responsable: row.docente_responsable || '',
       periodo_academico: row.periodo_academico || '',
-      profesores_adicionales_ids: row.profesores_adicionales_ids || [],
+        profesores: row.profesores_info ? row.profesores_info.map(p => p.id) : [],
       prerrequisitos: row.prerrequisitos || [],
     });
     
@@ -416,7 +431,22 @@ export default function AsignaturasPage() {
                                 ? a.prerrequisitos_nombres.map((p) => p.codigo || p.nombre).join(', ')
                                 : '-'}
                             </TableCell>
-                            <TableCell>{a.docente_responsable_nombre || '-'}</TableCell>
+                            <TableCell>
+                              {a.profesores_info && a.profesores_info.length > 0 ? (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                  {a.profesores_info.map((p) => (
+                                    <Chip
+                                      key={p.id}
+                                      label={p.nombre_completo}
+                                      onDelete={puedeGestionar ? () => quitarProfesorDeAsignatura(a.id, p.id) : undefined}
+                                      deleteIcon={<CloseIcon />}
+                                      sx={{ mr: 0.5 }}
+                                    />
+                                  ))}
+                                </Box>
+                              ) : '-'}
+                            </TableCell>
+                              
                             <TableCell align="center">
                               <Chip
                                 label={a.estado ? 'Activo' : 'Inactivo'}
@@ -502,30 +532,45 @@ export default function AsignaturasPage() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 260 }}>
               <FormControl fullWidth>
-                <InputLabel id="docente-label">Docente responsable</InputLabel>
+                <InputLabel id="profesores-label">Profesores</InputLabel>
                 <Select
-                  labelId="docente-label"
-                  label="Docente responsable"
-                  name="docente_responsable"
-                  value={form.docente_responsable}
-                  onChange={handleChange}
+                  labelId="profesores-label"
+                  label="Profesores"
+                  name="profesores"
+                  multiple
+                  value={form.profesores || []}
+                  onChange={e => setForm(prev => ({ ...prev, profesores: e.target.value }))}
+                  input={<OutlinedInput label="Profesores" />}
+                  renderValue={selected => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map(id => {
+                        const docente = docentes.find(d => d.id === id);
+                        const nombre = docente
+                          ? (docente.first_name || docente.last_name
+                              ? `${docente.first_name || ''} ${docente.last_name || ''}`.trim()
+                              : docente.username)
+                          : '';
+                        return <Chip key={id} label={nombre} size="small" />;
+                      })}
+                    </Box>
+                  )}
                 >
-                  {docentes.map((d) => (
+                  {docentes.map(d => (
                     <MenuItem key={d.id} value={d.id}>
                       {d.first_name || d.last_name ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : d.username}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
-              {form.docente_responsable && (
+              {form.profesores && form.profesores.length > 0 && (
                 <Button
                   size="small"
                   color="error"
                   endIcon={<CloseIcon />}
-                  onClick={() => setForm({ ...form, docente_responsable: '' })}
+                  onClick={() => setForm(prev => ({ ...prev, profesores: [] }))}
                   sx={{ mt: 1 }}
                 >
-                  Quitar docente
+                  Quitar profesores
                 </Button>
               )}
             </Grid>
@@ -572,44 +617,7 @@ export default function AsignaturasPage() {
               )}
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 260 }}>
-              <FormControl fullWidth>
-                <InputLabel id="profesores-adicionales-label">Profesores adicionales</InputLabel>
-                <Select
-                  labelId="profesores-adicionales-label"
-                  label="Profesores adicionales"
-                  multiple
-                  value={form.profesores_adicionales_ids || []}
-                  onChange={(e) => setForm((prev) => ({ ...prev, profesores_adicionales_ids: e.target.value }))}
-                  input={<OutlinedInput label="Profesores adicionales" />}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {selected.map((id) => {
-                        const docente = docentes.find((d) => d.id === id);
-                        const nombre = docente
-                          ? (docente.first_name || docente.last_name
-                              ? `${docente.first_name || ''} ${docente.last_name || ''}`.trim()
-                              : docente.username)
-                          : '';
-                        return (
-                          <Chip
-                            key={id}
-                            label={nombre}
-                            size="small"
-                          />
-                        );
-                      })}
-                    </Box>
-                  )}
-                >
-                  {docentes.map((d) => (
-                    <MenuItem key={d.id} value={d.id}>
-                      {d.first_name || d.last_name ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : d.username}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+
             <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 260 }}>
               <TextField
                 label="Créditos"

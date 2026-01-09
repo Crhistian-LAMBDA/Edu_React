@@ -14,7 +14,6 @@ import {
   InputLabel,
   LinearProgress,
   MenuItem,
-  OutlinedInput,
   Paper,
   Select,
   Table,
@@ -35,7 +34,6 @@ import PublishIcon from '@mui/icons-material/Publish';
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
-import AssignmentIcon from '@mui/icons-material/Assignment';
 import tareasService from '../services/tareasService';
 import { useAuth } from '../../../hooks/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
@@ -65,9 +63,11 @@ export default function TareasPage() {
   const [form, setForm] = useState(defaultForm);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [pesosPorAsignatura, setPesosPorAsignatura] = useState({});
-  const [filterAsignatura, setFilterAsignatura] = useState('');
-  const [filterTipo, setFilterTipo] = useState('');
-  const [filterEstado, setFilterEstado] = useState('');
+  
+  // Filtros estáticos (no implementados aún)
+  const filterAsignatura = '';
+  const filterTipo = '';
+  const filterEstado = '';
 
   useEffect(() => {
     if (esDocente) {
@@ -76,6 +76,7 @@ export default function TareasPage() {
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [esDocente]);
 
   const cargarDatos = async () => {

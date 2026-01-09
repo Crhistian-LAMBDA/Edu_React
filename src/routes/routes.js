@@ -10,10 +10,28 @@ import DashboardPage from '../features/usuarios/pages/DashboardPage';
 import PerfilPage from '../features/auth/pages/PerfilPage';
 import UsuariosPage from '../features/usuarios/pages/UsuariosPage';
 import RolesPermisosPage from '../features/usuarios/pages/RolesPermisosPage';
+
 import AsignaturasPage from '../features/academico/pages/AsignaturasPage';
+import PeriodosAdminPage from '../features/academico/pages/PeriodosAdminPage';
 import FacultadesPage from '../features/academico/pages/FacultadesPage';
 import CarrerasPage from '../features/academico/pages/CarrerasPage';
 import TareasPage from '../features/academico/pages/TareasPage';
+import EntregasPage from '../features/academico/pages/EntregasPage';
+import MatriculaPage from '../features/matriculas/pages/MatriculaPage';
+import MisTareasPage from '../features/matriculas/pages/MisTareasPage';
+import MisAsignaturasEstudiantePage from '../features/academico/pages/MisAsignaturasEstudiantePage';
+      <Route
+        path="/admin/periodos"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <PeriodosAdminPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+// Eliminar la declaración duplicada de AppRoutes
 
 export default function AppRoutes() {
   return (
@@ -35,26 +53,46 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/perfil"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <PerfilPage />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/usuarios"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <UsuariosPage />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/periodos"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <PeriodosAdminPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/matricula"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <MatriculaPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mis-asignaturas"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <MisAsignaturasEstudiantePage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mis-tareas"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <MisTareasPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
       <Route
         path="/roles-permisos"
         element={
@@ -101,6 +139,36 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <TareasPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/academico/entregas"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <EntregasPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/perfil"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <PerfilPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/usuarios"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <UsuariosPage />
             </AppLayout>
           </ProtectedRoute>
         }

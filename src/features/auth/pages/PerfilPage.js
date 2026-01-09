@@ -8,6 +8,9 @@ import { getDisplayName } from '../../../shared/utils/roleDisplayNames';
 
 export default function PerfilPage() {
   const { user, actualizarUsuario, cambiarPassword } = useAuth();
+    // Solo roles elevados pueden editar el número de documento
+    const rolesElevados = ['super_admin', 'admin', 'coordinador'];
+    const puedeEditarDocumento = user && (rolesElevados.includes(user.rol) || (user.roles && user.roles.some(r => rolesElevados.includes(r))));
   const [form, setForm] = useState(null);
   const [passwordForm, setPasswordForm] = useState({
     password_actual: '', password_nuevo: '', password_nuevo_confirm: ''
@@ -22,6 +25,8 @@ export default function PerfilPage() {
   }, [user]);
 
   if (!form) return null;
+
+  const displayRol = getDisplayName(form.rol || '') || 'Estudiante';
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
   const onPasswordChange = (e) => setPasswordForm({ ...passwordForm, [e.target.name]: e.target.value });
@@ -160,7 +165,7 @@ export default function PerfilPage() {
                 </Typography>
                 <Box mt={1} display="flex" gap={1}>
                   <Chip
-                    label={getDisplayName(form.rol)}
+                    label={displayRol}
                     color={getRolColor(form.rol)}
                     size="small"
                     icon={<Person />}
@@ -226,11 +231,16 @@ export default function PerfilPage() {
                 label="Número de documento"
                 name="numero_documento"
                 value={form.numero_documento || ''}
-                onChange={onChange}
+                onChange={puedeEditarDocumento ? onChange : undefined}
                 fullWidth
                 sx={{ mb: 2 }}
                 size="small"
-                helperText="Documento de identidad"
+                helperText={
+                  !form.numero_documento
+                    ? 'Documento de identidad. Contacta a un administrador si necesitas asignarlo.'
+                    : 'Documento de identidad'
+                }
+                disabled={!puedeEditarDocumento}
               />
               <Box display="flex" gap={2}>
                 <Button type="submit" variant="contained" fullWidth>
@@ -253,6 +263,28 @@ export default function PerfilPage() {
                 <School /> Información Académica
               </Typography>
               <Grid container spacing={2}>
+                {/* Rol del usuario */}
+                <Grid size={12}>
+                  <Card variant="outlined">
+                    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Person color="primary" />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {displayRol}
+                        </Typography>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Chip
+                            label={displayRol}
+                            color={getRolColor(form.rol)}
+                            size="small"
+                            icon={<Person fontSize="small" />}
+                          />
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
                 {form.facultad_nombre && (
                   <Grid size={12}>
                     <Card variant="outlined">
@@ -266,14 +298,14 @@ export default function PerfilPage() {
                     </Card>
                   </Grid>
                 )}
-                {form.programa_nombre && (
+                {form.carrera_nombre && (
                   <Grid size={12}>
                     <Card variant="outlined">
                       <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <MenuBook color="success" />
                         <Box>
-                          <Typography variant="caption" color="text.secondary">Programa</Typography>
-                          <Typography variant="body1">{form.programa_nombre}</Typography>
+                          <Typography variant="caption" color="text.secondary">Carrera</Typography>
+                          <Typography variant="body1">{form.carrera_nombre}</Typography>
                         </Box>
                       </CardContent>
                     </Card>
@@ -289,7 +321,23 @@ export default function PerfilPage() {
                     </Card>
                   </Grid>
                 )}
-                {!form.facultad_nombre && !form.programa_nombre && form.rol === 'estudiante' && (
+                {form.rol === 'estudiante' && form.asignaturas_matriculadas && form.asignaturas_matriculadas.length > 0 && (
+                  <Grid size={12}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="caption" color="text.secondary">Asignaturas matriculadas (activas)</Typography>
+                        <ul style={{margin:0, paddingLeft:18}}>
+                          {form.asignaturas_matriculadas.map(a => (
+                            <li key={a.id}>
+                              <strong>{a.asignatura_nombre}</strong> ({a.asignatura_codigo}) - {a.periodo_nombre}
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+                {!form.facultad_nombre && !form.carrera_nombre && form.rol === 'estudiante' && (
                   <Grid size={12}>
                     <Alert severity="info" variant="outlined">
                       No tienes programa académico asignado aún.

@@ -4,6 +4,11 @@
 import apiClient from '../../usuarios/services/usuariosService';
 
 const tareasService = {
+    /**
+     * Obtener lista de tareas solo para estudiante (materias con horario)
+     */
+    listarEstudiante: () =>
+      apiClient.get('/mis-tareas/'),
   /**
    * Obtener lista de tareas con filtros
    */
@@ -61,6 +66,14 @@ const tareasService = {
   listarAsignaturas: (params = {}) =>
     apiClient.get('/asignaturas/', {
       params: { page_size: 1000, ...params }
+    }),
+
+  /**
+   * Obtener tareas publicadas del estudiante (solo sus asignaturas matriculadas en periodo activo)
+   */
+  listarTareasEstudiante: () =>
+    apiClient.get('/tareas/mis-tareas-publicadas/', {
+      params: { page_size: 1000 }
     })
 };
 

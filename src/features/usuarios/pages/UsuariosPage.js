@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { usuariosService } from '../services/usuariosService';
-import { Paper, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, FormControl, InputLabel, Select, MenuItem, Grid, Chip, Tabs, Tab } from '@mui/material';
+import { Paper, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, FormControl, InputLabel, Select, MenuItem, Grid, Chip, Tabs, Tab, Container, Stack } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -414,39 +414,43 @@ export default function UsuariosPage() {
 
   if (!tienePermisos) {
     return (
-      <Box p={3}>
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
         <Alert severity="warning">No tienes permisos para acceder a esta sección. Solo decanos.</Alert>
-      </Box>
+      </Container>
     );
   }
 
   return (
-    <Box p={3}>
-      <Typography variant="h5" mb={3}>Usuarios</Typography>
-      {message.text && <Alert severity={message.type} sx={{ mb: 2 }}>{message.text}</Alert>}
-      
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} aria-label="Filtrar usuarios por rol">
-          <Tab label="Sin Rol Asignado" />
-          <Tab label="Estudiantes" />
-          <Tab label="Profesores" />
-          <Tab label="Coordinadores" />
-          <Tab label="Decanos/Rectores" />
-        </Tabs>
-      </Box>
-      
-      <Paper sx={{ height: 600, width: '100%' }}>
-        <DataGrid
-          rows={usuariosFiltrados}
-          columns={columns}
-          loading={loading}
-          pageSizeOptions={[5, 10, 25, 50]}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 10 } },
-          }}
-          disableRowSelectionOnClick
-        />
-      </Paper>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Stack spacing={2}>
+        <Box>
+          <Typography variant="h5" gutterBottom>Usuarios</Typography>
+          {message.text && <Alert severity={message.type}>{message.text}</Alert>}
+        </Box>
+
+        <Paper variant="outlined" sx={{ p: 1 }}>
+          <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} aria-label="Filtrar usuarios por rol">
+            <Tab label="Sin Rol Asignado" />
+            <Tab label="Estudiantes" />
+            <Tab label="Profesores" />
+            <Tab label="Coordinadores" />
+            <Tab label="Decanos/Rectores" />
+          </Tabs>
+        </Paper>
+
+        <Paper variant="outlined" sx={{ height: 600, width: '100%' }}>
+          <DataGrid
+            rows={usuariosFiltrados}
+            columns={columns}
+            loading={loading}
+            pageSizeOptions={[5, 10, 25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 10 } },
+            }}
+            disableRowSelectionOnClick
+          />
+        </Paper>
+      </Stack>
 
       <Dialog open={open} onClose={cerrarEditar}>
         <DialogTitle>Editar usuario</DialogTitle>
@@ -681,6 +685,6 @@ export default function UsuariosPage() {
           <Button onClick={cerrarVer}>Cerrar</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Container>
   );
 }

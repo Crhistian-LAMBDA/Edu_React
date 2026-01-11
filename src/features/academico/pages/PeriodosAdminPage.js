@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, Button, Alert, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Box, Typography, Button, Alert, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Container, Stack } from '@mui/material';
 import { asignaturasService } from '../../academico/services/asignaturasService';
 import apiClient from '../../usuarios/services/usuariosService';
+import { useSearch } from '../../../shared/context/SearchContext';
 
 export default function PeriodosAdminPage() {
+  const { searchTerm } = useSearch();
   const [periodos, setPeriodos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -92,13 +94,39 @@ export default function PeriodosAdminPage() {
     }
   };
 
-  if (loading) return <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}><CircularProgress /></Box>;
+  const periodosFiltrados = useMemo(() => {
+    if (!searchTerm?.trim()) return periodos;
+    const term = searchTerm.toLowerCase();
+    return periodos.filter((p) =>
+      p?.id?.toString().includes(term) ||
+      p?.nombre?.toLowerCase().includes(term) ||
+      p?.descripcion?.toLowerCase().includes(term) ||
+      p?.fecha_inicio?.toLowerCase().includes(term) ||
+      p?.fecha_fin?.toLowerCase().includes(term) ||
+      (p?.activo ? 'sí' : 'no').includes(term)
+    );
+  }, [periodos, searchTerm]);
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
   return (
-    <Box>
-      <Typography variant="h5" mb={2}>Gestión de Períodos Académicos</Typography>
-      <Button variant="contained" color="success" sx={{ mb: 2 }} onClick={handleOpen}>Crear nuevo período académico</Button>
-      {error && <Alert severity="error">{error}</Alert>}
-      {ok && <Alert severity="success">{ok}</Alert>}
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Stack spacing={2}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <Typography variant="h5">Gestión de Períodos Académicos</Typography>
+          <Button variant="contained" color="success" onClick={handleOpen}>
+            Crear nuevo período académico
+          </Button>
+        </Box>
+        {error && <Alert severity="error">{error}</Alert>}
+        {ok && <Alert severity="success">{ok}</Alert>}
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>{editId ? 'Editar Período Académico' : 'Crear Período Académico'}</DialogTitle>
         <DialogContent>
@@ -112,40 +140,43 @@ export default function PeriodosAdminPage() {
           <Button onClick={crearOEditarPeriodo} variant="contained" color="primary">{editId ? 'Guardar cambios' : 'Crear'}</Button>
         </DialogActions>
       </Dialog>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Nombre</TableCell>
-              <TableCell>Descripción</TableCell>
-              <TableCell>Fecha Inicio</TableCell>
-              <TableCell>Fecha Fin</TableCell>
-              <TableCell>Activo</TableCell>
-              <TableCell>Acciones</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {periodos.map((p) => (
-              <TableRow key={p.id} selected={p.activo}>
-                <TableCell>{p.nombre}</TableCell>
-                <TableCell>{p.descripcion}</TableCell>
-                <TableCell>{p.fecha_inicio}</TableCell>
-                <TableCell>{p.fecha_fin}</TableCell>
-                <TableCell>{p.activo ? 'Sí' : 'No'}</TableCell>
-                <TableCell>
-                  {p.activo ? (
-                    <Button color="warning" variant="outlined" onClick={() => desactivarPeriodo(p.id)} sx={{ mr: 1 }}>Desactivar</Button>
-                  ) : (
-                    <Button color="primary" variant="contained" onClick={() => activarPeriodo(p.id)} sx={{ mr: 1 }}>Activar</Button>
-                  )}
-                  <Button color="info" variant="outlined" onClick={() => handleEdit(p)} sx={{ mr: 1 }}>Editar</Button>
-                  <Button color="error" variant="outlined" onClick={() => eliminarPeriodo(p.id)}>Eliminar</Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+        <Paper variant="outlined">
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Nombre</TableCell>
+                  <TableCell>Descripción</TableCell>
+                  <TableCell>Fecha Inicio</TableCell>
+                  <TableCell>Fecha Fin</TableCell>
+                  <TableCell>Activo</TableCell>
+                  <TableCell>Acciones</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {periodosFiltrados.map((p) => (
+                  <TableRow key={p.id} selected={p.activo}>
+                    <TableCell>{p.nombre}</TableCell>
+                    <TableCell>{p.descripcion}</TableCell>
+                    <TableCell>{p.fecha_inicio}</TableCell>
+                    <TableCell>{p.fecha_fin}</TableCell>
+                    <TableCell>{p.activo ? 'Sí' : 'No'}</TableCell>
+                    <TableCell>
+                      {p.activo ? (
+                        <Button color="warning" variant="outlined" onClick={() => desactivarPeriodo(p.id)} sx={{ mr: 1 }}>Desactivar</Button>
+                      ) : (
+                        <Button color="primary" variant="contained" onClick={() => activarPeriodo(p.id)} sx={{ mr: 1 }}>Activar</Button>
+                      )}
+                      <Button color="info" variant="outlined" onClick={() => handleEdit(p)} sx={{ mr: 1 }}>Editar</Button>
+                      <Button color="error" variant="outlined" onClick={() => eliminarPeriodo(p.id)}>Eliminar</Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </Stack>
+    </Container>
   );
 }

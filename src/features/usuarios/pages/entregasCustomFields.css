@@ -1,0 +1,9 @@
+/* Fuerza el largo visual de los campos de periodo y asignatura */
+.campo-periodo-largo {
+  width: 500px !important;
+  max-width: 100vw;
+}
+.campo-asignatura-larguisimo {
+  width: 800px !important;
+  max-width: 100vw;
+}

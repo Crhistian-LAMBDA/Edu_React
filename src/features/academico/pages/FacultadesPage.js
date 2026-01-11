@@ -14,6 +14,8 @@ import {
   Chip,
   IconButton,
   Typography,
+  Container,
+  Stack,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
@@ -160,28 +162,30 @@ const FacultadesPage = () => {
   ];
 
   return (
-    <Box p={3}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5">Gestión de Facultades</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleNuevo}>
-          Nueva Facultad
-        </Button>
-      </Box>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Stack spacing={2}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h5">Gestión de Facultades</Typography>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleNuevo}>
+            Nueva Facultad
+          </Button>
+        </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && <Alert severity="error">{error}</Alert>}
 
-      <Paper sx={{ height: 600, width: '100%' }}>
-        <DataGrid
-          rows={facultadesFiltradas}
-          columns={columns}
-          loading={loading}
-          pageSizeOptions={[5, 10, 25, 50]}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 10 } },
-          }}
-          disableRowSelectionOnClick
-        />
-      </Paper>
+        <Paper variant="outlined" sx={{ height: 600, width: '100%' }}>
+          <DataGrid
+            rows={facultadesFiltradas}
+            columns={columns}
+            loading={loading}
+            pageSizeOptions={[5, 10, 25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 10 } },
+            }}
+            disableRowSelectionOnClick
+          />
+        </Paper>
+      </Stack>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{isEditing ? 'Editar Facultad' : 'Nueva Facultad'}</DialogTitle>
@@ -224,7 +228,7 @@ const FacultadesPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Container>
   );
 };
 

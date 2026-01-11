@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Chip,
+  Container,
   Dialog,
   DialogActions,
   DialogContent,
@@ -16,6 +17,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -48,6 +50,7 @@ const defaultForm = {
   fecha_vencimiento: '',
   estado: 'borrador',
   permite_entrega_tardia: false,
+  archivo_adjunto: null, // Nuevo campo para archivo
 };
 
 export default function TareasPage() {
@@ -63,6 +66,7 @@ export default function TareasPage() {
   const [form, setForm] = useState(defaultForm);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [pesosPorAsignatura, setPesosPorAsignatura] = useState({});
+  const [archivoAdjunto, setArchivoAdjunto] = useState(null); // Estado para archivo
   
   // Filtros estáticos (no implementados aún)
   const filterAsignatura = '';
@@ -160,6 +164,7 @@ export default function TareasPage() {
 
   const abrirCrear = () => {
     setForm(defaultForm);
+    setArchivoAdjunto(null);
     setEditing(null);
     setOpen(true);
   };
@@ -188,7 +193,9 @@ export default function TareasPage() {
       fecha_vencimiento: formatearFechaInput(tarea.fecha_vencimiento),
       estado: tarea.estado,
       permite_entrega_tardia: tarea.permite_entrega_tardia || false,
+      archivo_adjunto: null, // No pre-cargamos archivo
     });
+    setArchivoAdjunto(null);
     setOpen(true);
   };
 
@@ -204,6 +211,12 @@ export default function TareasPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  // Manejar cambio de archivo
+  const handleArchivoChange = (e) => {
+    const file = e.target.files[0] || null;
+    setArchivoAdjunto(file);
   };
 
   const validarFormulario = () => {
@@ -238,14 +251,25 @@ export default function TareasPage() {
     if (!validarFormulario()) return;
 
     try {
+      // Usar FormData para enviar archivo
+      const formData = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        // No incluir archivo_adjunto aquí, se maneja abajo
+        if (key !== 'archivo_adjunto') {
+          formData.append(key, value);
+        }
+      });
+      if (archivoAdjunto) {
+        formData.append('archivo_adjunto', archivoAdjunto);
+      }
+
       if (editing) {
-        await tareasService.actualizar(editing.id, form);
+        await tareasService.actualizar(editing.id, formData, true);
         setMessage({ type: 'success', text: 'Tarea actualizada exitosamente' });
       } else {
-        await tareasService.crear(form);
+        await tareasService.crear(formData, true);
         setMessage({ type: 'success', text: 'Tarea creada exitosamente' });
       }
-      
       await cargarDatos();
       cerrarDialog();
       setTimeout(() => setMessage({ type: '', text: '' }), 2500);
@@ -311,14 +335,16 @@ export default function TareasPage() {
 
   if (!esDocente) {
     return (
-      <Paper sx={{ p: 2 }}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Alert severity="error">No tienes permisos para acceder a esta página</Alert>
-      </Paper>
+      </Container>
     );
   }
 
   return (
-    <Paper sx={{ p: 2 }}>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Stack spacing={2}>
+        <Paper variant="outlined" sx={{ p: 2 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h6">Tareas y Exámenes</Typography>
         {esDocente && (
@@ -390,6 +416,7 @@ export default function TareasPage() {
                       <TableCell align="center">Peso</TableCell>
                       <TableCell>Publicación</TableCell>
                       <TableCell>Vencimiento</TableCell>
+                      <TableCell>Archivo</TableCell>
                       <TableCell align="center">Estado</TableCell>
                       <TableCell align="center">Acciones</TableCell>
                     </TableRow>
@@ -415,6 +442,15 @@ export default function TareasPage() {
                         </TableCell>
                         <TableCell>
                           {new Date(tarea.fecha_vencimiento).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          {tarea.archivo_adjunto ? (
+                            <a href={tarea.archivo_adjunto} target="_blank" rel="noopener noreferrer">
+                              Descargar
+                            </a>
+                          ) : (
+                            <span style={{ color: '#aaa' }}>—</span>
+                          )}
                         </TableCell>
                         <TableCell align="center">
                           <Chip
@@ -611,6 +647,30 @@ export default function TareasPage() {
                 placeholder="Instrucciones detalladas de la tarea..."
               />
             </Grid>
+
+            {/* Archivo adjunto - Fila completa */}
+            <Grid item xs={12}>
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+                startIcon={<PublishIcon />}>
+                {archivoAdjunto ? archivoAdjunto.name : 'Adjuntar archivo (opcional)'}
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.csv,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mkv,.mp3,.wav,.odt,.ods,.odp"
+                  hidden
+                  onChange={handleArchivoChange}
+                />
+              </Button>
+              {editing && editing.archivo_adjunto && !archivoAdjunto && (
+                <Box mt={1}>
+                  <a href={editing.archivo_adjunto} target="_blank" rel="noopener noreferrer">
+                    Descargar archivo actual
+                  </a>
+                </Box>
+              )}
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
@@ -622,6 +682,8 @@ export default function TareasPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Paper>
+        </Paper>
+      </Stack>
+    </Container>
   );
 }

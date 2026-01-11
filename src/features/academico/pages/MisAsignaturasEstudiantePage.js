@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, Button, CircularProgress, Alert, IconButton } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, Button, CircularProgress, Alert, IconButton, Container } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import dayjs from 'dayjs';
 import matriculasService from '../../academico/services/matriculasService';
+import { useSearch } from '../../../shared/context/SearchContext';
 
 export default function MisAsignaturasEstudiantePage() {
+  const { searchTerm } = useSearch();
   const [matriculas, setMatriculas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,6 +48,22 @@ export default function MisAsignaturasEstudiantePage() {
   useEffect(() => {
     cargarMatriculas();
   }, []);
+
+  const matriculasFiltradas = useMemo(() => {
+    if (!searchTerm?.trim()) return matriculas;
+    const term = searchTerm.toLowerCase();
+    return matriculas.filter((m) => {
+      const codigo = (m?.asignatura?.codigo || m?.asignatura_codigo || '').toString().toLowerCase();
+      const nombre = (m?.asignatura?.nombre || m?.asignatura_nombre || '').toString().toLowerCase();
+      const horario = (m?.horario || '').toString().toLowerCase();
+      return (
+        codigo.includes(term) ||
+        nombre.includes(term) ||
+        horario.includes(term) ||
+        m?.id?.toString().includes(term)
+      );
+    });
+  }, [matriculas, searchTerm]);
 
   const handleHorarioChange = (id, field, value) => {
     setHorarios(prev => ({
@@ -100,12 +117,24 @@ export default function MisAsignaturasEstudiantePage() {
     }
   };
 
-  if (loading) return <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}><CircularProgress /></Box>;
-  if (error) return <Alert severity="error">{error}</Alert>;
+  if (loading) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}><CircularProgress /></Box>
+      </Container>
+    );
+  }
+  if (error) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="error">{error}</Alert>
+      </Container>
+    );
+  }
 
   return (
-    <Box maxWidth={800} mx="auto" mt={4}>
-      <Paper elevation={3} sx={{ p: 3 }}>
+    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Paper variant="outlined" sx={{ p: 3 }}>
         <Typography variant="h5" gutterBottom>Mis Asignaturas</Typography>
         {ok && <Alert severity="success" sx={{ mb: 2 }}>{ok}</Alert>}
         <Table>
@@ -118,12 +147,12 @@ export default function MisAsignaturasEstudiantePage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {matriculas.length === 0 ? (
+            {matriculasFiltradas.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} align="center">No tienes asignaturas matriculadas.</TableCell>
               </TableRow>
             ) : (
-              matriculas.map(m => (
+              matriculasFiltradas.map(m => (
                 <TableRow key={m.id}>
                   <TableCell>{m.asignatura?.codigo || m.asignatura_codigo}</TableCell>
                   <TableCell>{m.asignatura?.nombre || m.asignatura_nombre}</TableCell>
@@ -192,6 +221,6 @@ export default function MisAsignaturasEstudiantePage() {
           </TableBody>
         </Table>
       </Paper>
-    </Box>
+    </Container>
   );
 }

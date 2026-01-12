@@ -50,11 +50,11 @@ apiClient.interceptors.response.use(
 
 export const usuariosService = {
   // Registro
-  registro: (data) => apiClient.post('/auth/registro/', data),
+  registro: (data) => apiClient.post('/usuarios/registro/', data),
 
   // Login
   login: (email, password) =>
-    apiClient.post('/auth/login/', { email, password }),
+    apiClient.post('/usuarios/login/', { email, password }),
 
   // Obtener perfil del usuario autenticado
   obtenerPerfil: () => apiClient.get('/usuarios/me/'),
@@ -76,17 +76,17 @@ export const usuariosService = {
   
   // Recuperación de contraseña
   soliciarRecuperacion: (email) =>
-    apiClient.post('/auth/solicitar-recuperacion/', { email }),
+    apiClient.post('/usuarios/solicitar-recuperacion/', { email }),
     
   resetearPassword: (token, password_nueva, password_nueva_confirm) =>
-    apiClient.post('/auth/resetear-password/', {
+    apiClient.post('/usuarios/resetear-password/', {
       token,
       password_nueva,
       password_nueva_confirm
     }),
     
   validarToken: (token) =>
-    apiClient.post('/auth/validar-token/', { token }),
+    apiClient.post('/usuarios/validar-token/', { token }),
   
   // Entidades académicas
   listarFacultades: () => apiClient.get('/facultades/'),

@@ -50,6 +50,14 @@ export default function LoginPage() {
         }}
       >
         <Typography variant="h5" mb={2} sx={{ textAlign: 'center' }}>Iniciar sesión</Typography>
+        <Button
+          variant="text"
+          fullWidth
+          sx={{ mb: 1 }}
+          onClick={() => navigate('/')}
+        >
+          Ir al inicio
+        </Button>
         {showInfo && (
           <Alert
             severity="info"

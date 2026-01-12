@@ -1,9 +1,44 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, Button, CircularProgress, Alert, IconButton, Container } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Container,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import matriculasService from '../../academico/services/matriculasService';
+import matriculasService from '../../matriculas/services/matriculasService';
 import { useSearch } from '../../../shared/context/SearchContext';
+
+const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+const parseHorario = (horario) => {
+  if (!horario) return null;
+  if (typeof horario === 'object') return horario;
+  try {
+    return JSON.parse(horario);
+  } catch {
+    return null;
+  }
+};
+
+const isValidTime = (t) => /^([01]\d|2[0-3]):[0-5]\d$/.test((t || '').toString());
 
 export default function MisAsignaturasEstudiantePage() {
   const { searchTerm } = useSearch();
@@ -11,7 +46,7 @@ export default function MisAsignaturasEstudiantePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [horarios, setHorarios] = useState({}); // { [id]: { dia, inicio, fin } }
-  const [ok, setOk] = useState('');
+  const [feedback, setFeedback] = useState({ message: '', severity: 'success' });
   const [editando, setEditando] = useState({});
 
   const cargarMatriculas = async () => {
@@ -24,15 +59,13 @@ export default function MisAsignaturasEstudiantePage() {
       const horariosIniciales = {};
       data.forEach(m => {
         if (m.horario) {
-          try {
-            const h = typeof m.horario === 'string' ? JSON.parse(m.horario) : m.horario;
+          const h = parseHorario(m.horario);
+          if (h) {
             horariosIniciales[m.id] = {
               dia: h.dia || '',
               inicio: h.inicio || '',
-              fin: h.fin || ''
+              fin: h.fin || '',
             };
-          } catch {
-            // Si el horario no es JSON válido, lo ignora
           }
         }
       });
@@ -75,29 +108,51 @@ export default function MisAsignaturasEstudiantePage() {
     }));
   };
 
+  const ensureHorarioState = (id) => {
+    setHorarios((prev) => {
+      if (prev[id]) return prev;
+      return {
+        ...prev,
+        [id]: { dia: '', inicio: '', fin: '' },
+      };
+    });
+  };
+
   const handleGuardar = async (id) => {
-    setOk('');
+    setFeedback({ message: '', severity: 'success' });
     const horarioObj = horarios[id];
     if (!horarioObj?.dia || !horarioObj?.inicio || !horarioObj?.fin) {
-      setOk('Debes completar día, hora de inicio y fin.');
+      setFeedback({ message: 'Debes seleccionar día, hora de inicio y fin.', severity: 'error' });
       return;
     }
+
+    if (!isValidTime(horarioObj.inicio) || !isValidTime(horarioObj.fin)) {
+      setFeedback({ message: 'Formato de hora inválido. Usa HH:MM.', severity: 'error' });
+      return;
+    }
+
+    if (horarioObj.fin <= horarioObj.inicio) {
+      setFeedback({ message: 'La hora fin debe ser mayor que la hora inicio.', severity: 'error' });
+      return;
+    }
+
     const horarioStr = JSON.stringify({
       dia: horarioObj.dia,
       inicio: horarioObj.inicio,
       fin: horarioObj.fin
     });
     try {
-      await matriculasService.actualizar(id, { horario: horarioStr });
-      setOk('Horario guardado correctamente.');
+      await matriculasService.actualizarHorario(id, { horario: horarioStr });
+      setFeedback({ message: 'Horario guardado correctamente.', severity: 'success' });
       setEditando(prev => ({ ...prev, [id]: false }));
       cargarMatriculas();
     } catch {
-      setOk('Error al guardar el horario.');
+      setFeedback({ message: 'Error al guardar el horario.', severity: 'error' });
     }
   };
 
   const handleEditar = (id) => {
+    ensureHorarioState(id);
     setEditando(prev => ({ ...prev, [id]: true }));
   };
 
@@ -107,13 +162,13 @@ export default function MisAsignaturasEstudiantePage() {
   };
 
   const handleEliminar = async (id) => {
-    setOk('');
+    setFeedback({ message: '', severity: 'success' });
     try {
-      await matriculasService.actualizar(id, { horario: '' });
-      setOk('Horario eliminado correctamente.');
+      await matriculasService.actualizarHorario(id, { horario: '' });
+      setFeedback({ message: 'Horario eliminado correctamente.', severity: 'success' });
       cargarMatriculas();
     } catch {
-      setOk('Error al eliminar el horario.');
+      setFeedback({ message: 'Error al eliminar el horario.', severity: 'error' });
     }
   };
 
@@ -136,7 +191,11 @@ export default function MisAsignaturasEstudiantePage() {
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Paper variant="outlined" sx={{ p: 3 }}>
         <Typography variant="h5" gutterBottom>Mis Asignaturas</Typography>
-        {ok && <Alert severity="success" sx={{ mb: 2 }}>{ok}</Alert>}
+        {feedback.message ? (
+          <Alert severity={feedback.severity} sx={{ mb: 2 }}>
+            {feedback.message}
+          </Alert>
+        ) : null}
         <Table>
           <TableHead>
             <TableRow>
@@ -157,61 +216,84 @@ export default function MisAsignaturasEstudiantePage() {
                   <TableCell>{m.asignatura?.codigo || m.asignatura_codigo}</TableCell>
                   <TableCell>{m.asignatura?.nombre || m.asignatura_nombre}</TableCell>
                   <TableCell>
-                    {m.horario && !editando[m.id] ? (
-                      <>
-                        <Typography variant="body2" color="primary">
-                          {(() => {
-                            try {
-                              const h = typeof m.horario === 'string' ? JSON.parse(m.horario) : m.horario;
-                              return `Día: ${h.dia || '-'} | Inicio: ${h.inicio || '-'} | Fin: ${h.fin || '-'}`;
-                            } catch {
-                              return m.horario;
-                            }
-                          })()}
-                        </Typography>
-                      </>
-                    ) : (
-                      <Box display="flex" flexDirection="row" gap={1}>
-                        <input
-                          type="text"
-                          placeholder="Día"
-                          value={horarios[m.id]?.dia || ''}
-                          onChange={e => handleHorarioChange(m.id, 'dia', e.target.value)}
-                          style={{ width: 80 }}
-                        />
-                        <input
-                          type="text"
-                          placeholder="Inicio"
-                          value={horarios[m.id]?.inicio || ''}
-                          onChange={e => handleHorarioChange(m.id, 'inicio', e.target.value)}
-                          style={{ width: 60 }}
-                        />
-                        <input
-                          type="text"
-                          placeholder="Fin"
-                          value={horarios[m.id]?.fin || ''}
-                          onChange={e => handleHorarioChange(m.id, 'fin', e.target.value)}
-                          style={{ width: 60 }}
-                        />
-                      </Box>
-                    )}
+                    {(() => {
+                      const h = parseHorario(m.horario);
+                      const hayHorario = Boolean(h && (h.dia || h.inicio || h.fin));
+
+                      if (!editando[m.id]) {
+                        return (
+                          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                            {hayHorario ? (
+                              <>
+                                <Chip size="small" label={`Día: ${h.dia || '-'}`} />
+                                <Chip size="small" label={`Inicio: ${h.inicio || '-'}`} />
+                                <Chip size="small" label={`Fin: ${h.fin || '-'}`} />
+                              </>
+                            ) : (
+                              <Chip size="small" label="Sin horario" variant="outlined" />
+                            )}
+                          </Stack>
+                        );
+                      }
+
+                      return (
+                        <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} gap={1} alignItems={{ sm: 'center' }}>
+                          <FormControl size="small" sx={{ minWidth: 140 }}>
+                            <InputLabel id={`dia-label-${m.id}`}>Día</InputLabel>
+                            <Select
+                              labelId={`dia-label-${m.id}`}
+                              label="Día"
+                              value={horarios[m.id]?.dia || ''}
+                              onChange={(e) => handleHorarioChange(m.id, 'dia', e.target.value)}
+                            >
+                              {DIAS.map((d) => (
+                                <MenuItem key={d} value={d}>
+                                  {d}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+
+                          <TextField
+                            size="small"
+                            label="Inicio"
+                            type="time"
+                            value={horarios[m.id]?.inicio || ''}
+                            onChange={(e) => handleHorarioChange(m.id, 'inicio', e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            inputProps={{ step: 300 }}
+                            sx={{ width: 140 }}
+                          />
+                          <TextField
+                            size="small"
+                            label="Fin"
+                            type="time"
+                            value={horarios[m.id]?.fin || ''}
+                            onChange={(e) => handleHorarioChange(m.id, 'fin', e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            inputProps={{ step: 300 }}
+                            sx={{ width: 140 }}
+                          />
+                        </Box>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
-                    {m.horario && !editando[m.id] ? (
+                    {!editando[m.id] ? (
                       <>
-                        <IconButton color="primary" onClick={() => handleEditar(m.id)} title="Editar horario">
+                        <IconButton color="primary" onClick={() => handleEditar(m.id)} title="Asignar/editar horario">
                           <EditIcon />
                         </IconButton>
-                        <IconButton color="error" onClick={() => handleEliminar(m.id)} title="Eliminar horario">
-                          <DeleteIcon />
-                        </IconButton>
+                        {m.horario ? (
+                          <IconButton color="error" onClick={() => handleEliminar(m.id)} title="Eliminar horario">
+                            <DeleteIcon />
+                          </IconButton>
+                        ) : null}
                       </>
                     ) : (
                       <>
                         <Button variant="contained" onClick={() => handleGuardar(m.id)} sx={{ mr: 1 }}>Guardar</Button>
-                        {m.horario && (
-                          <Button variant="outlined" onClick={() => handleCancelar(m.id)}>Cancelar</Button>
-                        )}
+                        <Button variant="outlined" onClick={() => handleCancelar(m.id)}>Cancelar</Button>
                       </>
                     )}
                   </TableCell>

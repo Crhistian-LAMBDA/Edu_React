@@ -73,7 +73,13 @@ export default function AsignaturasPage() {
     };
   const { searchTerm } = useSearch();
   const { user } = useAuth();
-  const puedeGestionar = ['admin', 'super_admin', 'coordinador'].includes(user?.rol);
+  const puedeGestionar = (() => {
+    const allowed = ['admin', 'super_admin', 'coordinador'];
+    if (Array.isArray(user?.roles)) {
+      return user.roles.some((r) => allowed.includes(r));
+    }
+    return allowed.includes(user?.rol);
+  })();
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);

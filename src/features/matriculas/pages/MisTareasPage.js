@@ -44,6 +44,7 @@ export default function MisTareasPage() {
   const [archivo, setArchivo] = useState(null);
   const [comentarios, setComentarios] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [successEntrega, setSuccessEntrega] = useState('');
   const [tareas, setTareas] = useState([]);
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,10 +61,20 @@ export default function MisTareasPage() {
         const tareasData = Array.isArray(tareasRes.data) ? tareasRes.data : tareasRes.data.results || [];
         const asignaturasData = Array.isArray(asignaturasRes.data) ? asignaturasRes.data : asignaturasRes.data.results || [];
         const entregasData = Array.isArray(entregasRes.data) ? entregasRes.data : entregasRes.data.results || [];
+
+        // Solo tareas visibles para estudiante: publicadas (ya visibles) o cerradas
+        const tareasVisibles = (tareasData || []).filter((t) => {
+          if (t?.estado === 'cerrada') return true;
+          if (t?.estado !== 'publicada') return false;
+          // Si el backend envía esta_publicada, la respetamos
+          if (typeof t?.esta_publicada === 'boolean') return t.esta_publicada;
+          return true;
+        });
+
         // Filtrar solo asignaturas con horario asignado
         const asignaturasConHorario = asignaturasData.filter(m => m.horario && m.horario !== '' && m.horario !== null);
         setAsignaturas(asignaturasConHorario);
-        setTareas(tareasData);
+        setTareas(tareasVisibles);
         setEntregas(entregasData);
       })
       .catch(() => setError('No se pudieron cargar las tareas o asignaturas'))
@@ -75,6 +86,8 @@ export default function MisTareasPage() {
     setTareaSeleccionada(tarea);
     setArchivo(null);
     setComentarios('');
+    setErrorEntrega('');
+    setSuccessEntrega('');
     setOpenDialog(true);
   };
 
@@ -82,23 +95,45 @@ export default function MisTareasPage() {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
+      setArchivo(null);
+      setErrorEntrega('El archivo no puede superar 10MB.');
       return;
     }
     const extensionesPermitidas = ['.pdf', '.doc', '.docx', '.zip', '.rar', '.txt'];
     const nombre = file.name.toLowerCase();
     const esValido = extensionesPermitidas.some((ext) => nombre.endsWith(ext));
     if (!esValido) {
+      setArchivo(null);
+      setErrorEntrega('Formato no permitido. Usa PDF, DOC, DOCX, ZIP, RAR o TXT.');
       return;
     }
+    setErrorEntrega('');
     setArchivo(file);
   };
 
   const handleSubirEntrega = async () => {
     if (!archivo) {
+      setErrorEntrega('Debes seleccionar un archivo para enviar la entrega.');
       return;
     }
+
+    // Validación rápida extra (sin depender solo del botón): vencimiento/cierre
+    if (tareaSeleccionada?.estado === 'cerrada') {
+      setErrorEntrega('Esta tarea está cerrada y ya no acepta entregas.');
+      return;
+    }
+    if (tareaSeleccionada?.fecha_vencimiento) {
+      const ahora = new Date();
+      const vencimiento = new Date(tareaSeleccionada.fecha_vencimiento);
+      if (vencimiento < ahora && !tareaSeleccionada?.permite_entrega_tardia) {
+        setErrorEntrega('La tarea está vencida y no permite entregas tardías.');
+        return;
+      }
+    }
+
     setUploading(true);
     setErrorEntrega('');
+    setSuccessEntrega('');
     const formData = new FormData();
     formData.append('tarea', tareaSeleccionada.id);
     formData.append('archivo_entrega', archivo);
@@ -108,6 +143,9 @@ export default function MisTareasPage() {
       setOpenDialog(false);
       setArchivo(null);
       setComentarios('');
+
+      setSuccessEntrega('Entrega registrada exitosamente. El docente será notificado.');
+
       // Recargar entregas
       const entregasRes = await entregasService.listar();
       const entregasData = Array.isArray(entregasRes.data) ? entregasRes.data : entregasRes.data.results || [];
@@ -148,6 +186,10 @@ export default function MisTareasPage() {
           </Typography>
         </Box>
 
+        {successEntrega && (
+          <Alert severity="success">{successEntrega}</Alert>
+        )}
+
         {asignaturas.length === 0 ? (
           <Alert severity="info">No tienes materias con horario asignado.</Alert>
         ) : (
@@ -178,6 +220,7 @@ export default function MisTareasPage() {
                       <TableRow>
                         <TableCell>Título</TableCell>
                         <TableCell>Descripción</TableCell>
+                        <TableCell>Publicación</TableCell>
                         <TableCell>Vencimiento</TableCell>
                         <TableCell>Estado</TableCell>
                         <TableCell>Archivo</TableCell>
@@ -191,11 +234,15 @@ export default function MisTareasPage() {
                         const vencimiento = new Date(t.fecha_vencimiento);
                         const estaVencida = vencimiento < ahora;
                         const permiteTardia = t.permite_entrega_tardia;
+                        const estaCerrada = t.estado === 'cerrada';
                         let estadoTarea = '';
                         let estadoColor = '';
                         if (entrega) {
                           estadoTarea = 'Entregada';
                           estadoColor = 'success.main';
+                        } else if (estaCerrada) {
+                          estadoTarea = 'Cerrada';
+                          estadoColor = 'text.secondary';
                         } else if (estaVencida && !permiteTardia) {
                           estadoTarea = 'Vencida';
                         } else if (estaVencida && permiteTardia) {
@@ -212,6 +259,13 @@ export default function MisTareasPage() {
                             </TableCell>
                             <TableCell>
                               <span>{t.descripcion}</span>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption" color="text.secondary">
+                                {t.fecha_publicacion
+                                  ? new Date(t.fecha_publicacion).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
+                                  : '—'}
+                              </Typography>
                             </TableCell>
                             <TableCell>
                               <Typography variant="caption" color="text.secondary">
@@ -259,10 +313,15 @@ export default function MisTareasPage() {
                                     variant="contained"
                                     startIcon={<UploadFileIcon />}
                                     onClick={() => abrirDialogoEntrega(t)}
-                                    disabled={estaVencida && !permiteTardia}
+                                    disabled={estaCerrada || (estaVencida && !permiteTardia)}
                                   >
                                     Entregar
                                   </Button>
+                                  {estaCerrada && (
+                                    <Typography variant="caption" color="text.secondary" display="block">
+                                      La tarea está cerrada y ya no acepta entregas.
+                                    </Typography>
+                                  )}
                                   {(estaVencida && !permiteTardia) && (
                                     <Typography variant="caption" color="error" display="block">
                                       La tarea está vencida y no permite entregas tardías.
@@ -284,10 +343,33 @@ export default function MisTareasPage() {
                                 {errorEntrega && (
                                   <Alert severity="error" sx={{ mb: 2 }}>{errorEntrega}</Alert>
                                 )}
+
+                                {tareaSeleccionada?.fecha_vencimiento && tareaSeleccionada?.permite_entrega_tardia && (() => {
+                                  try {
+                                    const ahora = new Date();
+                                    const venc = new Date(tareaSeleccionada.fecha_vencimiento);
+                                    if (venc < ahora) {
+                                      return (
+                                        <Alert severity="warning" sx={{ mb: 2 }}>
+                                          Esta entrega se registrará como tardía.
+                                        </Alert>
+                                      );
+                                    }
+                                  } catch {
+                                    // ignore
+                                  }
+                                  return null;
+                                })()}
+
                                 <Button variant="outlined" component="label" fullWidth sx={{ mb: 2 }}>
                                   <UploadFileIcon sx={{ mr: 1 }} />
                                   {archivo ? archivo.name : 'Seleccionar archivo'}
-                                  <input type="file" hidden onChange={handleArchivoChange} />
+                                  <input
+                                    type="file"
+                                    hidden
+                                    accept=".pdf,.doc,.docx,.zip,.rar,.txt"
+                                    onChange={handleArchivoChange}
+                                  />
                                 </Button>
                                 <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
                                   Formatos permitidos: PDF, DOC, DOCX, ZIP, RAR, TXT (máx. 10MB)

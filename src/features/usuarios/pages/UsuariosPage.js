@@ -9,6 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import { useAuth } from '../../../hooks/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
 import { getDisplayName } from '../../../shared/utils/roleDisplayNames';
+import { ROLE_HIERARCHY } from '../../../hooks/useRoleHierarchy';
 
 /**
  * UsuariosPage - Gestión de Usuarios y Roles (HU-05)
@@ -25,15 +26,6 @@ import { getDisplayName } from '../../../shared/utils/roleDisplayNames';
  * - Las validaciones se aplican tanto en frontend como en backend
  * - Se requiere confirmación para cambios de rol significativos
  */
-
-// Jerarquía de roles: mayor valor = mayor jerarquía
-const ROLE_HIERARCHY = {
-  super_admin: 5,
-  admin: 4,
-  coordinador: 3,
-  profesor: 2,
-  estudiante: 1
-};
 
 // Obtiene el rol principal basado en jerarquía
 const getRolPrincipal = (roles) => {

@@ -12,7 +12,7 @@ import {
   InputAdornment,
   IconButton,
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Check, Close } from '@mui/icons-material';
 import { usuariosService } from '../../usuarios/services/usuariosService';
 
 export default function ResetPasswordPage() {
@@ -31,6 +31,33 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const getValidationStatus = () => {
+    const pass = formData.password_nueva || '';
+    const confirm = formData.password_nueva_confirm || '';
+    return {
+      hasLength: pass.length >= 8,
+      hasUpper: /[A-Z]/.test(pass),
+      hasNumber: /[0-9]/.test(pass),
+      matches: pass.length > 0 && confirm.length > 0 && pass === confirm,
+    };
+  };
+
+  const validation = getValidationStatus();
+  const canSubmit = validation.hasLength && validation.hasUpper && validation.hasNumber && validation.matches;
+
+  const ValidationItem = ({ valid, text }) => (
+    <Box display="flex" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
+      {valid ? (
+        <Check sx={{ fontSize: '1.1rem', color: 'success.main' }} />
+      ) : (
+        <Close sx={{ fontSize: '1.1rem', color: 'error.main' }} />
+      )}
+      <Typography variant="caption" sx={{ color: valid ? 'success.main' : 'error.main' }}>
+        {text}
+      </Typography>
+    </Box>
+  );
 
   // Validar token al cargar
   useEffect(() => {
@@ -71,19 +98,28 @@ export default function ResetPasswordPage() {
     setError('');
     setSuccess('');
 
-    // Validación básica
     if (!formData.password_nueva || !formData.password_nueva_confirm) {
       setError('Ambas contraseñas son requeridas');
       return;
     }
 
-    if (formData.password_nueva !== formData.password_nueva_confirm) {
-      setError('Las contraseñas no coinciden');
+    if (!validation.hasLength) {
+      setError('La contraseña debe tener al menos 8 caracteres');
       return;
     }
 
-    if (formData.password_nueva.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres');
+    if (!validation.hasUpper) {
+      setError('La contraseña debe contener al menos una letra mayúscula');
+      return;
+    }
+
+    if (!validation.hasNumber) {
+      setError('La contraseña debe contener al menos un número');
+      return;
+    }
+
+    if (!validation.matches) {
+      setError('Las contraseñas no coinciden');
       return;
     }
 
@@ -139,9 +175,14 @@ export default function ResetPasswordPage() {
           }}
         >
           <Alert severity="error">{error || 'Token inválido o expirado'}</Alert>
-          <Button variant="contained" onClick={() => navigate('/login')}>
-            Volver a Login
-          </Button>
+          <Box display="flex" gap={2}>
+            <Button variant="contained" onClick={() => navigate('/olvide-contraseña')}>
+              Solicitar nuevo enlace
+            </Button>
+            <Button variant="outlined" onClick={() => navigate('/login')}>
+              Volver a Login
+            </Button>
+          </Box>
         </Box>
       </Container>
     );
@@ -193,6 +234,13 @@ export default function ResetPasswordPage() {
               }}
             />
 
+            <Box sx={{ mt: 1, mb: 1 }}>
+              <ValidationItem valid={validation.hasLength} text="Mínimo 8 caracteres" />
+              <ValidationItem valid={validation.hasUpper} text="Al menos una letra mayúscula" />
+              <ValidationItem valid={validation.hasNumber} text="Al menos un número" />
+              <ValidationItem valid={validation.matches} text="Las contraseñas coinciden" />
+            </Box>
+
             <TextField
               fullWidth
               label="Confirmar Contraseña"
@@ -222,7 +270,7 @@ export default function ResetPasswordPage() {
               color="primary"
               type="submit"
               sx={{ mt: 3 }}
-              disabled={submitting}
+              disabled={submitting || !canSubmit}
             >
               {submitting ? <CircularProgress size={24} /> : 'Actualizar Contraseña'}
             </Button>

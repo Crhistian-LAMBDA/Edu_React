@@ -1,7 +1,7 @@
 import apiClient from '../../usuarios/services/usuariosService';
 
 const misCalificacionesService = {
-  obtenerResumen: () => apiClient.get('/mis-calificaciones/'),
+  obtenerResumen: (params) => apiClient.get('/mis-calificaciones/', { params }),
 };
 
 export default misCalificacionesService;

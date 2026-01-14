@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Paper, Typography, TextField, Button, Alert, Grid, Avatar, Chip, Card, CardContent
 } from '@mui/material';
-import { Person, School, Business, MenuBook, Lock, Check, Close } from '@mui/icons-material';
+import { Person, School, Business, MenuBook, Lock, Check, Close, LightMode, DarkMode } from '@mui/icons-material';
 import { useAuth } from '../../../hooks/AuthContext';
 import { getDisplayName } from '../../../shared/utils/roleDisplayNames';
+import { useColorMode } from '../../../shared/context/ColorModeContext';
 
 export default function PerfilPage() {
   const { user, actualizarUsuario, cambiarPassword } = useAuth();
+  const { mode, toggleColorMode } = useColorMode();
     // Solo roles elevados pueden editar el número de documento
     const rolesElevados = ['super_admin', 'admin', 'coordinador'];
     const puedeEditarDocumento = user && (rolesElevados.includes(user.rol) || (user.roles && user.roles.some(r => rolesElevados.includes(r))));
@@ -345,6 +347,24 @@ export default function PerfilPage() {
                   </Grid>
                 )}
               </Grid>
+            </Paper>
+
+            {/* Cuenta */}
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" mb={2} display="flex" alignItems="center" gap={1}>
+                <Person /> Cuenta
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Cambia el modo de color de la aplicación.
+              </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={toggleColorMode}
+                startIcon={mode === 'dark' ? <LightMode /> : <DarkMode />}
+              >
+                {mode === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              </Button>
             </Paper>
 
             {/* Cambiar Contraseña */}

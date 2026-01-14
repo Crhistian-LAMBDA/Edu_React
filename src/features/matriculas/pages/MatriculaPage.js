@@ -1,7 +1,29 @@
 // Página para matrícula de asignaturas
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Typography, Paper, Button, Alert, CircularProgress, FormControl, InputLabel, Select, MenuItem, Checkbox, List, ListItem, ListItemText, Divider, Chip, Tooltip } from '@mui/material';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  Divider,
+  FormControl,
+  InputLabel,
+  List,
+  ListItem,
+  ListItemText,
+  MenuItem,
+  Paper,
+  Select,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { asignaturasService } from '../../academico/services/asignaturasService';
 import { useAuth } from '../../../hooks/AuthContext';
 import matriculasService from '../services/matriculasService';
@@ -45,7 +67,10 @@ export default function MatriculaPage() {
   // IDs de asignaturas ya matriculadas en este periodo
   const idsMatriculadas = useMemo(() => {
     return matriculadas
-      .filter(m => String(m.periodo) === String(periodoId))
+      .filter(m => {
+        const periodoValue = typeof m.periodo === 'object' ? m.periodo?.id : m.periodo;
+        return String(periodoValue) === String(periodoId);
+      })
       .map(m => (typeof m.asignatura === 'object' ? m.asignatura.id : m.asignatura));
   }, [matriculadas, periodoId]);
 
@@ -144,63 +169,82 @@ export default function MatriculaPage() {
             if (b[0] === 'Sin semestre') return -1;
             return Number(a[0]) - Number(b[0]);
           }).map(([semestre, asigns]) => (
-            <Box key={semestre} mb={3}>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                Semestre {semestre !== 'Sin semestre' ? semestre : <Chip label="Sin semestre" size="small" />}
-              </Typography>
-              <List dense>
-                {asigns.map(asig => {
-                  const idsPrerreq = (asig.prerrequisitos || []);
-                  const nombresPrerreq = (asig.prerrequisitos_nombres || []);
-                  const tienePrerreqNoCumplido = idsPrerreq.length > 0 && !idsPrerreq.every(id => idsAprobadas.includes(id));
-                  const yaMatriculada = idsMatriculadas.includes(asig.id);
-                  return (
-                    <Tooltip
-                      key={asig.id}
-                      title={
-                        yaMatriculada
-                          ? 'Ya matriculada'
-                          : tienePrerreqNoCumplido
-                            ? `Prerrequisitos no cumplidos: ${nombresPrerreq.map(p => p.nombre || p.codigo).join(', ')}`
-                            : ''
-                      }
-                      arrow
-                      disableHoverListener={!tienePrerreqNoCumplido && !yaMatriculada}
-                    >
-                      <span>
-                        <ListItem
-                          sx={{ borderBottom: '1px solid #eee', opacity: tienePrerreqNoCumplido ? 0.5 : 1, background: yaMatriculada ? '#f5f5f5' : 'inherit' }}
-                          secondaryAction={
-                            <Checkbox
-                              edge="end"
-                              checked={seleccionadas.includes(asig.id)}
-                              onChange={() => handleSeleccion(asig.id)}
-                              inputProps={{ 'aria-label': `matricular ${asig.nombre}` }}
-                              disabled={tienePrerreqNoCumplido || yaMatriculada}
-                            />
-                          }
-                          disabled={tienePrerreqNoCumplido || yaMatriculada}
-                        >
-                          <ListItemText
-                            primary={<span><b>{asig.nombre}</b> <span style={{ color: '#888' }}>({asig.codigo})</span> {yaMatriculada && <Chip label="Matriculada" size="small" sx={{ ml: 1 }} />}</span>}
-                            secondary={
-                              <>
-                                {asig.descripcion}
-                                {idsPrerreq.length > 0 && (
-                                  <span style={{ color: '#b77', marginLeft: 8 }}>
-                                    Prerrequisitos: {nombresPrerreq.map(p => p.nombre || p.codigo).join(', ')}
-                                  </span>
-                                )}
-                              </>
+            <Accordion key={semestre} defaultExpanded={false} sx={{ overflow: 'hidden', mb: 1 }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="h6">
+                  Semestre {semestre !== 'Sin semestre' ? semestre : <Chip label="Sin semestre" size="small" />}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <List dense>
+                  {asigns.map(asig => {
+                    const idsPrerreq = (asig.prerrequisitos || []);
+                    const nombresPrerreq = (asig.prerrequisitos_nombres || []);
+                    const tienePrerreqNoCumplido = idsPrerreq.length > 0 && !idsPrerreq.every(id => idsAprobadas.includes(id));
+                    const yaMatriculada = idsMatriculadas.includes(asig.id);
+                    return (
+                      <Tooltip
+                        key={asig.id}
+                        title={
+                          yaMatriculada
+                            ? 'Ya matriculada'
+                            : tienePrerreqNoCumplido
+                              ? `Prerrequisitos no cumplidos: ${nombresPrerreq.map(p => p.nombre || p.codigo).join(', ')}`
+                              : ''
+                        }
+                        arrow
+                        disableHoverListener={!tienePrerreqNoCumplido && !yaMatriculada}
+                      >
+                        <span>
+                          <ListItem
+                            sx={{
+                              borderBottom: 1,
+                              borderColor: 'divider',
+                              opacity: tienePrerreqNoCumplido ? 0.5 : 1,
+                              bgcolor: yaMatriculada ? 'action.selected' : 'transparent',
+                            }}
+                            secondaryAction={
+                              <Checkbox
+                                edge="end"
+                                checked={seleccionadas.includes(asig.id)}
+                                onChange={() => handleSeleccion(asig.id)}
+                                inputProps={{ 'aria-label': `matricular ${asig.nombre}` }}
+                                disabled={tienePrerreqNoCumplido || yaMatriculada}
+                              />
                             }
-                          />
-                        </ListItem>
-                      </span>
-                    </Tooltip>
-                  );
-                })}
-              </List>
-            </Box>
+                            disabled={tienePrerreqNoCumplido || yaMatriculada}
+                          >
+                            <ListItemText
+                              primary={
+                                <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                                  <Typography component="span" fontWeight={700}>
+                                    {asig.nombre}
+                                  </Typography>
+                                  <Typography component="span" variant="body2" color="text.secondary">
+                                    ({asig.codigo})
+                                  </Typography>
+                                  {yaMatriculada && <Chip label="Matriculada" size="small" />}
+                                </Box>
+                              }
+                              secondary={
+                                <>
+                                  {asig.descripcion}
+                                  {idsPrerreq.length > 0 && (
+                                    <Typography component="span" variant="caption" color="error" sx={{ ml: 1 }}>
+                                      Prerrequisitos: {nombresPrerreq.map(p => p.nombre || p.codigo).join(', ')}
+                                    </Typography>
+                                  )}
+                                </>
+                              }
+                            />
+                          </ListItem>
+                        </span>
+                      </Tooltip>
+                    );
+                  })}
+                </List>
+              </AccordionDetails>
+            </Accordion>
           ))
         )}
         <Button

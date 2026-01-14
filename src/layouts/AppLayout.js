@@ -17,8 +17,11 @@ import CloseIcon from '@mui/icons-material/Close';
 import MicIcon from '@mui/icons-material/Mic';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import LogoutIcon from '@mui/icons-material/Logout';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 import { useAuth } from '../hooks/AuthContext';
 import { useSearch } from '../shared/context/SearchContext';
+import { useColorMode } from '../shared/context/ColorModeContext';
 
 const DRAWER_WIDTH = 250;
 const DRAWER_WIDTH_COLLAPSED = 72;
@@ -30,6 +33,7 @@ export default function AppLayout({ children }) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { searchTerm, setSearchTerm } = useSearch();
+  const { mode, toggleColorMode } = useColorMode();
 
   const isDashboard = location.pathname === '/dashboard';
   const usePermanentDrawer = isDesktop && !isDashboard;
@@ -98,7 +102,9 @@ export default function AppLayout({ children }) {
 
   // Tareas para profesor, docente, coordinador, admin y super_admin
   if (tieneAlgunRol(['profesor', 'docente', 'coordinador', 'admin', 'super_admin'])) {
-    menuItems.push({ label: 'Gestión de Tareas', icon: <AssignmentIcon />, path: '/mis-tareas' });
+    // HU-07: Gestión de Tareas y Exámenes (docentes/staff)
+    menuItems.push({ label: 'Tareas', icon: <AssignmentIcon />, path: '/academico/tareas' });
+    menuItems.push({ label: 'Notas por Materia', icon: <AssignmentIcon />, path: '/staff/calificaciones' });
     // Entregas de Estudiantes para profesor, admin, coordinador y super_admin
     menuItems.push({ label: 'Entregas de Estudiantes', icon: <AssignmentIcon />, path: '/profesor/entregas' });
   }
@@ -234,6 +240,7 @@ export default function AppLayout({ children }) {
     if (path === '/matricula') return 'Buscar asignatura...';
     if (path === '/mis-asignaturas') return 'Buscar asignatura...';
     if (path === '/roles-permisos') return 'Buscar permiso...';
+    if (path === '/staff/calificaciones') return 'Buscar materia o estudiante...';
     return 'Buscar...';
   }, [location.pathname]);
 
@@ -500,6 +507,21 @@ export default function AppLayout({ children }) {
                 <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
                 <ListItemText>Mi Perfil</ListItemText>
               </MenuItem>
+
+              <MenuItem
+                onClick={() => {
+                  closeUserMenu();
+                  toggleColorMode();
+                }}
+              >
+                <ListItemIcon>
+                  {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+                </ListItemIcon>
+                <ListItemText>
+                  {mode === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                </ListItemText>
+              </MenuItem>
+
               <MenuItem
                 onClick={() => {
                   closeUserMenu();

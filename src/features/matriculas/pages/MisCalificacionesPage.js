@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Container,
   LinearProgress,
+  MenuItem,
   Paper,
   Link,
   Stack,
@@ -20,6 +21,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -38,21 +40,27 @@ const parseHorario = (horario) => {
 
 export default function MisCalificacionesPage() {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [baseData, setBaseData] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [error, setError] = useState('');
+  const [periodoId, setPeriodoId] = useState('');
+  const [asignaturaId, setAsignaturaId] = useState('');
 
   useEffect(() => {
     let mounted = true;
     (async () => {
-      setLoading(true);
+      setInitialLoading(true);
       setError('');
       try {
         const res = await misCalificacionesService.obtenerResumen();
-        if (mounted) setData(res.data);
+        if (!mounted) return;
+        setData(res.data);
+        setBaseData(res.data);
       } catch (e) {
         if (mounted) setError('No se pudieron cargar tus calificaciones.');
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) setInitialLoading(false);
       }
     })();
     return () => {
@@ -60,20 +68,77 @@ export default function MisCalificacionesPage() {
     };
   }, []);
 
+  // Cuando cambian filtros, pedir al backend si hay filtros activos.
+  // Si están vacíos, volver a la data base (sin re-consultar).
+  useEffect(() => {
+    let mounted = true;
+    const hasFilters = Boolean(periodoId) || Boolean(asignaturaId);
+
+    if (!hasFilters) {
+      if (baseData) setData(baseData);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    (async () => {
+      setFilterLoading(true);
+      setError('');
+      try {
+        const params = {};
+        if (periodoId) params.periodo_id = periodoId;
+        if (asignaturaId) params.asignatura_id = asignaturaId;
+        const res = await misCalificacionesService.obtenerResumen(params);
+        if (mounted) setData(res.data);
+      } catch (e) {
+        if (mounted) setError('No se pudieron cargar tus calificaciones con los filtros seleccionados.');
+      } finally {
+        if (mounted) setFilterLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [periodoId, asignaturaId, baseData]);
+
   const objetivo = data?.objetivo_aprobacion ?? 60;
   const asignaturas = useMemo(() => data?.asignaturas ?? [], [data]);
 
-  const hayDatos = asignaturas.length > 0;
+  // Opciones: se basan en la data inicial para no “perder” opciones al filtrar.
+  const baseAsignaturas = useMemo(() => baseData?.asignaturas ?? [], [baseData]);
+
+  const periodos = useMemo(() => {
+    const map = new Map();
+    for (const a of baseAsignaturas) {
+      const p = a?.periodo;
+      if (!p?.id) continue;
+      map.set(String(p.id), { id: String(p.id), nombre: p.nombre || String(p.id) });
+    }
+    return Array.from(map.values()).sort((x, y) => (x.nombre || '').localeCompare(y.nombre || ''));
+  }, [baseAsignaturas]);
+
+  const asignaturasOpts = useMemo(() => {
+    return (baseAsignaturas || [])
+      .map((a) => a?.asignatura)
+      .filter((x) => x?.id)
+      .map((x) => ({ id: String(x.id), label: `${x.codigo || ''} - ${x.nombre || ''}`.trim() }));
+  }, [baseAsignaturas]);
+
+  // La lista que se muestra ya viene filtrada desde backend cuando hay filtros.
+  const asignaturasFiltradas = useMemo(() => asignaturas || [], [asignaturas]);
+
+  const hayDatos = asignaturasFiltradas.length > 0;
 
   const resumenGeneral = useMemo(() => {
     if (!hayDatos) return null;
-    const totalActual = asignaturas.reduce((acc, a) => acc + (a?.resumen?.nota_actual_ponderada ?? 0), 0);
+    const totalActual = asignaturasFiltradas.reduce((acc, a) => acc + (a?.resumen?.nota_actual_ponderada ?? 0), 0);
     return {
       totalActual: Math.round(totalActual * 100) / 100,
     };
-  }, [asignaturas, hayDatos]);
+  }, [asignaturasFiltradas, hayDatos]);
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
         <CircularProgress />
@@ -110,6 +175,45 @@ export default function MisCalificacionesPage() {
               <Typography variant="body2" color="text.secondary">
                 Objetivo de aprobación: {objetivo}
               </Typography>
+              {filterLoading ? <LinearProgress /> : null}
+              <Box display="grid" gridTemplateColumns={{ xs: '1fr', md: '1fr 1fr' }} gap={2}>
+                <TextField
+                  select
+                  label="Filtrar por período"
+                  value={periodoId}
+                  onChange={(e) => setPeriodoId(e.target.value)}
+                  size="small"
+                  disabled={filterLoading}
+                  fullWidth
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  {periodos.map((p) => (
+                    <MenuItem key={p.id} value={p.id}>
+                      {p.nombre}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  select
+                  label="Filtrar por asignatura"
+                  value={asignaturaId}
+                  onChange={(e) => setAsignaturaId(e.target.value)}
+                  size="small"
+                  disabled={filterLoading}
+                  fullWidth
+                >
+                  <MenuItem value="">Todas</MenuItem>
+                  {asignaturasOpts.map((a) => (
+                    <MenuItem key={a.id} value={a.id}>
+                      {a.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                Mostrando: {asignaturasFiltradas.length} materia(s)
+              </Typography>
               {resumenGeneral && (
                 <Typography variant="body2">
                   Suma de notas ponderadas (todas las materias): {resumenGeneral.totalActual}
@@ -119,12 +223,13 @@ export default function MisCalificacionesPage() {
           </CardContent>
         </Card>
 
-        {asignaturas.map((a) => {
+        {asignaturasFiltradas.map((a) => {
           const asig = a.asignatura;
           const docentes = a.docentes || [];
           const horarioObj = parseHorario(a.horario);
           const tareas = a.tareas || [];
           const resumen = a.resumen || {};
+          const periodo = a.periodo;
 
           const notaActual = resumen.nota_actual_ponderada ?? 0;
           const pesoCalificado = resumen.peso_calificado ?? 0;
@@ -141,6 +246,7 @@ export default function MisCalificacionesPage() {
                     {asig?.codigo} - {asig?.nombre}
                   </Typography>
                   <Box display="flex" flexWrap="wrap" gap={1}>
+                    {periodo?.nombre ? <Chip size="small" label={`Período: ${periodo.nombre}`} /> : null}
                     {docentes.length > 0 ? (
                       docentes.map((d) => (
                         <Chip key={d.id} size="small" label={`Docente: ${d.nombre}`} />
@@ -213,17 +319,22 @@ export default function MisCalificacionesPage() {
                   <TableHead>
                     <TableRow>
                       <TableCell>Tarea</TableCell>
+                      <TableCell>Tipo</TableCell>
                       <TableCell>Peso (%)</TableCell>
                       <TableCell>Nota</TableCell>
                       <TableCell>Aporte ponderado</TableCell>
+                      <TableCell>Estado</TableCell>
+                      <TableCell>Retroalimentación</TableCell>
                       <TableCell>Adjunto</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {tareas.map((t) => {
                       const peso = t.peso_porcentual ?? 0;
-                      const cal = t.entrega?.calificacion;
+                      const cal = t.entrega?.nota ?? t.entrega?.calificacion;
                       const aporte = cal === null || cal === undefined ? null : (cal * (peso / 100));
+                      const estadoCal = t.entrega?.estado_calificacion ?? t.entrega?.estado_entrega;
+                      const retro = t.entrega?.retroalimentacion_docente ?? t.entrega?.comentarios_docente;
                       return (
                         <TableRow key={t.id} hover>
                           <TableCell>
@@ -234,9 +345,12 @@ export default function MisCalificacionesPage() {
                               </Typography>
                             ) : null}
                           </TableCell>
+                          <TableCell>{t.tipo_tarea || '—'}</TableCell>
                           <TableCell>{peso}</TableCell>
                           <TableCell>{cal === null || cal === undefined ? '—' : cal}</TableCell>
                           <TableCell>{aporte === null ? '—' : Math.round(aporte * 100) / 100}</TableCell>
+                          <TableCell>{estadoCal || '—'}</TableCell>
+                          <TableCell>{retro || '—'}</TableCell>
                           <TableCell>
                             {t.archivo_adjunto ? (
                               <Link href={toAbsoluteBackendUrl(t.archivo_adjunto)} target="_blank" rel="noopener noreferrer">
@@ -251,10 +365,10 @@ export default function MisCalificacionesPage() {
                     })}
 
                     <TableRow>
-                      <TableCell colSpan={3}>
+                      <TableCell colSpan={4}>
                         <Typography fontWeight={700}>Total ponderado actual</Typography>
                       </TableCell>
-                      <TableCell colSpan={2}>
+                      <TableCell colSpan={4}>
                         <Typography fontWeight={700}>{notaActual}</Typography>
                       </TableCell>
                     </TableRow>

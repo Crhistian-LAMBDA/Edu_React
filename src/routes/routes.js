@@ -19,6 +19,7 @@ import EntregasPage from '../features/academico/pages/EntregasPage';
 import MatriculaPage from '../features/matriculas/pages/MatriculaPage';
 import MisTareasRoutePage from '../features/matriculas/pages/MisTareasRoutePage';
 import MisCalificacionesPage from '../features/matriculas/pages/MisCalificacionesPage';
+import CalificacionesStaffPage from '../features/matriculas/pages/CalificacionesStaffPage';
 import MisAsignaturasEstudiantePage from '../features/academico/pages/MisAsignaturasEstudiantePage';
 import GestionEntregasPage from '../features/academico/pages/GestionEntregasPage';
 import TareasEntregadasProfesorPage from '../features/usuarios/pages/TareasEntregadasProfesorPage';
@@ -105,6 +106,17 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/staff/calificaciones"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <CalificacionesStaffPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/roles-permisos"
         element={
@@ -118,7 +130,7 @@ export default function AppRoutes() {
       <Route
         path="/academico/asignaturas"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'super_admin', 'coordinador']}>
             <AppLayout>
               <AsignaturasPage />
             </AppLayout>
@@ -148,7 +160,7 @@ export default function AppRoutes() {
       <Route
         path="/academico/tareas"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['profesor', 'docente', 'coordinador', 'admin', 'super_admin']}>
             <AppLayout>
               <TareasPage />
             </AppLayout>

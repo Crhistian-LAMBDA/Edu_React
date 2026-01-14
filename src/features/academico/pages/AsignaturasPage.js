@@ -73,7 +73,13 @@ export default function AsignaturasPage() {
     };
   const { searchTerm } = useSearch();
   const { user } = useAuth();
-  const puedeGestionar = ['admin', 'super_admin', 'coordinador'].includes(user?.rol);
+  const puedeGestionar = (() => {
+    const allowed = ['admin', 'super_admin', 'coordinador'];
+    if (Array.isArray(user?.roles)) {
+      return user.roles.some((r) => allowed.includes(r));
+    }
+    return allowed.includes(user?.rol);
+  })();
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -267,8 +273,25 @@ export default function AsignaturasPage() {
     }
     setImportando(true);
     try {
-      await asignaturasService.importarAsignaturas(archivo, null, false);
-      setMessage({ type: 'success', text: 'Asignaturas importadas correctamente' });
+      const res = await asignaturasService.importarAsignaturas(archivo, null, false);
+      const data = res?.data;
+      if (data) {
+        setValidacionResultado(data);
+      }
+
+      const creadas = Number(data?.creadas ?? 0);
+      const invalidas = Number(data?.invalidas ?? 0);
+      const total = Number(data?.total ?? 0);
+
+      if (invalidas > 0) {
+        setMessage({
+          type: 'warning',
+          text: `Importación completada con errores: ${creadas}/${total} creadas. Revisa el detalle en la tabla.`,
+        });
+        return;
+      }
+
+      setMessage({ type: 'success', text: `Importación completada: ${creadas}/${total} creadas.` });
       cerrarImportDialog();
       cargarDatos();
     } catch (e) {

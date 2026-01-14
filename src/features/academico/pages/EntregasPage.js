@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   Chip,
+  Container,
   Dialog,
   DialogActions,
   DialogContent,
@@ -13,6 +14,7 @@ import {
   IconButton,
   LinearProgress,
   Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -202,26 +204,29 @@ export default function EntregasPage() {
 
   if (loading) {
     return (
-      <Box sx={{ width: '100%', mt: 2 }}>
-        <LinearProgress />
-      </Box>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Box sx={{ width: '100%' }}>
+          <LinearProgress />
+        </Box>
+      </Container>
     );
   }
 
   if (!esEstudiante) {
     return (
-      <Box sx={{ p: 3 }}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Alert severity="info">Esta página es solo para estudiantes</Alert>
-      </Box>
+      </Container>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <AssignmentIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
-        <Typography variant="h4">Mis Tareas</Typography>
-      </Box>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Stack spacing={2}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AssignmentIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+          <Typography variant="h5">Mis Tareas</Typography>
+        </Box>
 
       {message.text && (
         <Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage({ type: '', text: '' })}>
@@ -229,93 +234,93 @@ export default function EntregasPage() {
         </Alert>
       )}
 
-      {Object.keys(tareasAgrupadas).length === 0 ? (
-        <Alert severity="info">No hay tareas publicadas en tus asignaturas</Alert>
-      ) : (
-        Object.entries(tareasAgrupadas).map(([key, grupo]) => (
-          <Accordion key={key} defaultExpanded>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h6">
-                {grupo.asignatura_codigo} - {grupo.asignatura_nombre}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Tarea</TableCell>
-                      <TableCell>Tipo</TableCell>
-                      <TableCell>Peso %</TableCell>
-                      <TableCell>Vencimiento</TableCell>
-                      <TableCell>Estado</TableCell>
-                      <TableCell>Calificación</TableCell>
-                      <TableCell align="center">Acciones</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {grupo.tareas.map((tarea) => {
-                      const estado = obtenerEstadoTarea(tarea);
-                      return (
-                        <TableRow key={tarea.id}>
-                          <TableCell>{tarea.titulo}</TableCell>
-                          <TableCell>
-                            <Chip label={tarea.tipo_tarea} size="small" variant="outlined" />
-                          </TableCell>
-                          <TableCell>{tarea.peso_porcentual}%</TableCell>
-                          <TableCell>
-                            {new Date(tarea.fecha_vencimiento).toLocaleString('es-ES', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </TableCell>
-                          <TableCell>
-                            <Chip label={estado.label} color={estado.color} size="small" />
-                          </TableCell>
-                          <TableCell>
-                            {estado.entrega?.calificacion ? (
-                              <Typography fontWeight="bold" color="primary">
-                                {estado.entrega.calificacion}/100
-                              </Typography>
-                            ) : (
-                              '-'
-                            )}
-                          </TableCell>
-                          <TableCell align="center">
-                            {estado.entrega ? (
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => entregasService.descargarArchivo(estado.entrega.archivo_entrega)}
-                                title="Descargar mi entrega"
-                              >
-                                <DownloadIcon />
-                              </IconButton>
-                            ) : (
-                              <Button
-                                size="small"
-                                variant="contained"
-                                startIcon={<UploadFileIcon />}
-                                onClick={() => abrirDialogoEntrega(tarea)}
-                                disabled={estado.label === 'Vencida'}
-                              >
-                                Entregar
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </AccordionDetails>
-          </Accordion>
-        ))
-      )}
+        {Object.keys(tareasAgrupadas).length === 0 ? (
+          <Alert severity="info">No hay tareas publicadas en tus asignaturas</Alert>
+        ) : (
+          Object.entries(tareasAgrupadas).map(([key, grupo]) => (
+            <Accordion key={key} defaultExpanded>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  {grupo.asignatura_codigo} - {grupo.asignatura_nombre}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Tarea</TableCell>
+                        <TableCell>Tipo</TableCell>
+                        <TableCell>Peso %</TableCell>
+                        <TableCell>Vencimiento</TableCell>
+                        <TableCell>Estado</TableCell>
+                        <TableCell>Calificación</TableCell>
+                        <TableCell align="center">Acciones</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {grupo.tareas.map((tarea) => {
+                        const estado = obtenerEstadoTarea(tarea);
+                        return (
+                          <TableRow key={tarea.id}>
+                            <TableCell>{tarea.titulo}</TableCell>
+                            <TableCell>
+                              <Chip label={tarea.tipo_tarea} size="small" variant="outlined" />
+                            </TableCell>
+                            <TableCell>{tarea.peso_porcentual}%</TableCell>
+                            <TableCell>
+                              {new Date(tarea.fecha_vencimiento).toLocaleString('es-ES', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              <Chip label={estado.label} color={estado.color} size="small" />
+                            </TableCell>
+                            <TableCell>
+                              {estado.entrega?.calificacion ? (
+                                <Typography fontWeight="bold" color="primary">
+                                  {estado.entrega.calificacion}/100
+                                </Typography>
+                              ) : (
+                                '-'
+                              )}
+                            </TableCell>
+                            <TableCell align="center">
+                              {estado.entrega ? (
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => entregasService.descargarArchivo(estado.entrega.archivo_entrega)}
+                                  title="Descargar mi entrega"
+                                >
+                                  <DownloadIcon />
+                                </IconButton>
+                              ) : (
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  startIcon={<UploadFileIcon />}
+                                  onClick={() => abrirDialogoEntrega(tarea)}
+                                  disabled={estado.label === 'Vencida'}
+                                >
+                                  Entregar
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </AccordionDetails>
+            </Accordion>
+          ))
+        )}
 
       {/* Dialog para subir entrega */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
@@ -375,6 +380,7 @@ export default function EntregasPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+      </Stack>
+    </Container>
   );
 }

@@ -25,12 +25,26 @@ const tareasService = {
   /**
    * Crear nueva tarea
    */
-  crear: (data) => apiClient.post('/tareas/', data),
+  crear: (data, isFormData = false) => {
+    if (isFormData) {
+      return apiClient.post('/tareas/', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    }
+    return apiClient.post('/tareas/', data);
+  },
 
   /**
    * Actualizar tarea
    */
-  actualizar: (id, data) => apiClient.put(`/tareas/${id}/`, data),
+  actualizar: (id, data, isFormData = false) => {
+    if (isFormData) {
+      return apiClient.put(`/tareas/${id}/`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    }
+    return apiClient.put(`/tareas/${id}/`, data);
+  },
 
   /**
    * Editar parcialmente una tarea

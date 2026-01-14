@@ -1,11 +1,19 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 
 export default function DashboardPage() {
   return (
-    <Box p={3}>
-      <Typography variant="h5">Dashboard</Typography>
-      <Typography>Bienvenido al sistema.</Typography>
-    </Box>
+    <Box
+      sx={{
+        // El layout aplica padding al <main>; lo anulamos para que el dashboard sea full-bleed.
+        m: { xs: -2, md: -3 },
+        minHeight: 'calc(100vh - 64px)',
+        width: '100%',
+        backgroundImage: 'url(/logo_Dashboard.png)',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center',
+        backgroundSize: 'cover',
+      }}
+    />
   );
 }

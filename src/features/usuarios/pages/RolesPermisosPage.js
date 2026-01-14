@@ -33,12 +33,14 @@
  * - servicio: rolesService.actualizarPermisosRol()
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { rolesService } from '../services/rolesService';
 import { 
   Paper, 
   Typography, 
   Box, 
+  Container,
+  Stack,
   FormControl, 
   InputLabel, 
   Select, 
@@ -57,9 +59,11 @@ import {
   DialogActions
 } from '@mui/material';
 import { useAuth } from '../../../hooks/AuthContext';
+import { useSearch } from '../../../shared/context/SearchContext';
 
 export default function RolesPermisosPage() {
   const { user } = useAuth();
+  const { searchTerm } = useSearch();
   const [roles, setRoles] = useState([]);
   const [permisos, setPermisos] = useState([]);
   const [rolSeleccionado, setRolSeleccionado] = useState('');
@@ -145,14 +149,27 @@ export default function RolesPermisosPage() {
     }
   };
 
+  const permisosFiltrados = useMemo(() => {
+    if (!searchTerm?.trim()) return permisos;
+    const term = searchTerm.toLowerCase();
+    return permisos.filter((p) =>
+      p?.modulo?.toLowerCase().includes(term) ||
+      p?.nombre?.toLowerCase().includes(term) ||
+      p?.descripcion?.toLowerCase().includes(term) ||
+      p?.id?.toString().includes(term)
+    );
+  }, [permisos, searchTerm]);
+
   // Agrupar permisos por módulo
-  const permisosPorModulo = permisos.reduce((acc, permiso) => {
-    if (!acc[permiso.modulo]) {
-      acc[permiso.modulo] = [];
-    }
-    acc[permiso.modulo].push(permiso);
-    return acc;
-  }, {});
+  const permisosPorModulo = useMemo(() => {
+    return permisosFiltrados.reduce((acc, permiso) => {
+      if (!acc[permiso.modulo]) {
+        acc[permiso.modulo] = [];
+      }
+      acc[permiso.modulo].push(permiso);
+      return acc;
+    }, {});
+  }, [permisosFiltrados]);
 
   const modulosDisplay = {
     academico: '📚 Académico',
@@ -163,35 +180,36 @@ export default function RolesPermisosPage() {
 
   if (!esSuperAdmin) {
     return (
-      <Box p={3}>
-        <Alert severity="error">
-          Solo los super administradores pueden acceder a esta página.
-        </Alert>
-      </Box>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="error">Solo los super administradores pueden acceder a esta página.</Alert>
+      </Container>
     );
   }
 
   if (loading) {
     return (
-      <Box p={3}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Typography>Cargando...</Typography>
-      </Box>
+      </Container>
     );
   }
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" gutterBottom>
-        Gestión de Roles y Permisos
-      </Typography>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Stack spacing={2}>
+      <Box>
+        <Typography variant="h5" gutterBottom>
+          Gestión de Roles y Permisos
+        </Typography>
 
-      {message.text && (
-        <Alert severity={message.type} sx={{ mb: 2 }}>
-          {message.text}
-        </Alert>
-      )}
+        {message.text && (
+          <Alert severity={message.type}>
+            {message.text}
+          </Alert>
+        )}
+      </Box>
 
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: 2 }}>
         <FormControl fullWidth sx={{ mb: 3 }}>
           <InputLabel>Seleccionar Rol</InputLabel>
           <Select
@@ -274,7 +292,7 @@ export default function RolesPermisosPage() {
           <Typography variant="body2" sx={{ mt: 2 }}>
             ¿Está seguro de que desea actualizar los permisos de este rol?
           </Typography>
-          <Typography variant="caption" display="block" sx={{ mt: 2, color: 'orange' }}>
+          <Typography variant="caption" display="block" sx={{ mt: 2, color: 'warning.main' }}>
             ⚠️ Este cambio afectará a TODOS los usuarios asignados a este rol.
           </Typography>
         </DialogContent>
@@ -287,6 +305,7 @@ export default function RolesPermisosPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+      </Stack>
+    </Container>
   );
 }

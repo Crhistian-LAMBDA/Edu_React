@@ -8,6 +8,7 @@ import {
   Box,
   Button,
   Chip,
+  Container,
   Dialog,
   DialogActions,
   DialogContent,
@@ -339,7 +340,8 @@ export default function AsignaturasPage() {
   };
 
   return (
-    <Paper sx={{ p: 2 }}>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Paper variant="outlined" sx={{ p: 2 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h6">Asignaturas</Typography>
         {puedeGestionar && (
@@ -374,7 +376,7 @@ export default function AsignaturasPage() {
           </AccordionSummary>
           <AccordionDetails>
             {Object.entries(carreras).map(([carrera, lista]) => (
-              <Accordion key={carrera} disableGutters sx={{ mb: 1, boxShadow: 'none', border: '1px solid #eee' }}>
+              <Accordion key={carrera} disableGutters sx={{ mb: 1, boxShadow: 'none', border: 1, borderColor: 'divider' }}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                     <Checkbox
@@ -393,7 +395,7 @@ export default function AsignaturasPage() {
                   </Box>
                 </AccordionSummary>
                 {carrerasSeleccionadas[carrera] && (
-                  <Box sx={{ p: 1, bgcolor: '#fff3cd', borderTop: '1px solid #eee' }}>
+                  <Box sx={{ p: 1, bgcolor: 'warning.light', borderTop: 1, borderColor: 'divider' }}>
                     <Button
                       size="small"
                       color="error"
@@ -794,6 +796,7 @@ export default function AsignaturasPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Paper>
+      </Paper>
+    </Container>
   );
 }

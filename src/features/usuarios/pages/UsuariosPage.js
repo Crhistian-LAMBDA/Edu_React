@@ -458,6 +458,17 @@ export default function UsuariosPage() {
             onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
             sx={{ mb: 2 }}
           />
+          {/* Campo número de documento solo editable por roles elevados */}
+          {tieneAlgunRol(['super_admin', 'admin', 'coordinador']) && (
+            <TextField
+              label="Número de documento"
+              fullWidth
+              value={editForm.numero_documento || ''}
+              onChange={(e) => setEditForm({ ...editForm, numero_documento: e.target.value })}
+              sx={{ mb: 2 }}
+              helperText={!editForm.numero_documento ? 'Documento de identidad. Asignar si falta.' : 'Documento de identidad'}
+            />
+          )}
           <TextField
             label="Apellido"
             fullWidth

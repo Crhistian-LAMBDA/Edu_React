@@ -70,7 +70,40 @@ Crear archivo `.env` en la raíz:
 REACT_APP_API_URL=http://localhost:8000
 ```
 
-Si no se configura, usa `http://localhost:8000` por defecto.
+Notas:
+
+- Puedes poner solo el origen (ej: `http://localhost:8000`) o la URL completa con `/api`.
+- Internamente se normaliza para que siempre termine en `/api`.
+- Si no se configura, usa `http://localhost:8000/api` por defecto.
+
+Ejemplo para producción (Heroku):
+
+```env
+REACT_APP_API_URL=https://nameless-stream-29572-d8bfb350170e.herokuapp.com
+```
+
+También tienes un ejemplo en `.env.example`.
+
+## 🌍 Deploy rápido (Vercel / Netlify)
+
+### Vercel
+
+- Importa el repo en Vercel
+- Build Command: `npm run build`
+- Output Directory: `build`
+- Variables de entorno (Production):
+  - `REACT_APP_API_URL=https://nameless-stream-29572-d8bfb350170e.herokuapp.com`
+
+Este repo incluye `vercel.json` para que React Router funcione en refresh (SPA).
+
+### Netlify
+
+- Build Command: `npm run build`
+- Publish directory: `build`
+- Env var:
+  - `REACT_APP_API_URL=https://nameless-stream-29572-d8bfb350170e.herokuapp.com`
+
+Este repo incluye `public/_redirects` para el routing SPA.
 
 ### 4. Iniciar servidor de desarrollo
 
